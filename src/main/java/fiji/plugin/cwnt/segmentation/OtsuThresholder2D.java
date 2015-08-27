@@ -1,126 +1,151 @@
 package fiji.plugin.cwnt.segmentation;
 
-import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import mpicbg.imglib.algorithm.MultiThreadedBenchmarkAlgorithm;
-import mpicbg.imglib.algorithm.OutputAlgorithm;
-import mpicbg.imglib.algorithm.histogram.Histogram;
-import mpicbg.imglib.algorithm.histogram.HistogramBin;
-import mpicbg.imglib.algorithm.histogram.HistogramKey;
-import mpicbg.imglib.algorithm.histogram.discrete.DiscreteIntHistogramBinFactory;
-import mpicbg.imglib.cursor.LocalizablePlaneCursor;
-import mpicbg.imglib.image.Image;
-import mpicbg.imglib.image.ImageFactory;
-import mpicbg.imglib.type.logic.BitType;
-import mpicbg.imglib.type.numeric.IntegerType;
+import net.imglib2.Cursor;
+import net.imglib2.RandomAccess;
+import net.imglib2.RealCursor;
+import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
+import net.imglib2.algorithm.OutputAlgorithm;
+import net.imglib2.algorithm.stats.ComputeMinMax;
+import net.imglib2.algorithm.stats.Histogram;
+import net.imglib2.algorithm.stats.HistogramBinMapper;
+import net.imglib2.algorithm.stats.IntBinMapper;
+import net.imglib2.img.Img;
+import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.multithreading.SimpleMultiThreading;
+import net.imglib2.type.logic.BitType;
+import net.imglib2.type.numeric.IntegerType;
+import net.imglib2.view.IntervalView;
+import net.imglib2.view.Views;
 
-public class OtsuThresholder2D <T extends IntegerType<T>> extends MultiThreadedBenchmarkAlgorithm implements OutputAlgorithm<BitType> {
+@SuppressWarnings( "deprecation" )
+public class OtsuThresholder2D< T extends IntegerType< T >> extends MultiThreadedBenchmarkAlgorithm implements OutputAlgorithm< Img< BitType >>
+{
 
-	private Image<T> source;
-	private Image<BitType> target;
-	private double levelFactor;
-	
+	private static final String BASE_ERROR_MESSAGE = "[OtsuThresholder2D] ";
+
+	private final Img< T > source;
+
+	private Img< BitType > target;
+
+	private final double levelFactor;
 
 	/*
 	 * CONSTRUCTOR
 	 */
 
-	public OtsuThresholder2D(Image<T> source, double thresholdFactor) {
+	public OtsuThresholder2D( final Img< T > source, final double thresholdFactor )
+	{
 		super();
 		this.source = source;
 		this.levelFactor = thresholdFactor;
 	}
 
-
 	@Override
-	public boolean checkInput() {
+	public boolean checkInput()
+	{
 		return true;
 	}
 
 	@Override
-	public boolean process() {
-		
+	public boolean process()
+	{
+
 		// Create destination image
-		target = new ImageFactory<BitType>(new BitType(), source.getContainerFactory())
-			.createImage(source.getDimensions(), "Tresholded");
-		LocalizablePlaneCursor<BitType> targetCursor = target.getContainer().createLocalizablePlaneCursor(target);
-		
-		// Create cursor over source image
-		LocalizablePlaneCursor<T> cursor = source.getContainer().createLocalizablePlaneCursor(source);
-		int nslices = source.getDimension(2);
-		int[] pos = source.createPositionArray();
+		target = new ArrayImgFactory< BitType >().create( source, new BitType() );
+		final long nslices = source.dimension( 2 );
 
-		boolean check;
-		ArrayList<HistogramKey<T>> keys;
-		HistogramBin<T> bin;
-		long[] histarray;
-		int threshold;
-		
-		for (int z = 0; z < nslices; z++) {
-			
-			if (nslices > 1) { // If we get a 2D image
-				pos[2] = z;
-			}
-			
-			// Build histogram in given plane
-			cursor.reset(0, 1, pos);
-			Histogram<T> histoalgo = new Histogram<T>(new DiscreteIntHistogramBinFactory<T>(), cursor);
-			check = histoalgo.checkInput() && histoalgo.process();
-			if (!check) {
-				errorMessage = histoalgo.getErrorMessage();
-				return false;
-			}
+		final AtomicInteger aj = new AtomicInteger( 0 );
+		final AtomicBoolean ok = new AtomicBoolean( true );
 
-			// Put result in an int array
-			keys = histoalgo.getKeys();
-			histarray = new long[(int) cursor.getType().getMaxValue() + 1];
-			for(HistogramKey<T> key : keys) {
-				bin = histoalgo.getBin(key);
-				histarray[bin.getCenter().getInteger()] =  bin.getCount();
-			}
+		final Thread[] threads = SimpleMultiThreading.newThreads( numThreads );
 
-			// Get Otsu threshold
-			threshold = otsuThresholdIndex(histarray, source.getDimension(0) * source.getDimension(1));
-			threshold = (int) (threshold * levelFactor) ;
-			
-			
-			// Iterate over target image in the plane
-			targetCursor.reset(0, 1, pos);
-			cursor.reset(0, 1, pos);
-			while(targetCursor.hasNext()) {
-				targetCursor.fwd();
-				cursor.fwd();
-				targetCursor.getType().set( cursor.getType().getInteger() > threshold );
-			}
+		for ( int i = 0; i < threads.length; i++ )
+		{
+			threads[ i ] = new Thread( BASE_ERROR_MESSAGE + "Otsu tresholder thread " + i )
+			{
 
+				@Override
+				public void run()
+				{
+
+					for ( int z = aj.getAndIncrement(); z < nslices; z = aj.getAndIncrement() )
+					{
+
+						final IntervalView< T > slice = Views.hyperSlice( source, 2, z );
+
+						// Find min & max inside plane.
+						final T min = source.firstElement().createVariable();
+						final T max = source.firstElement().createVariable();
+						ComputeMinMax.computeMinMax( slice, min, max );
+
+						// Compute histogram.
+						final RealCursor< T > c = slice.cursor();
+						final HistogramBinMapper< T > mapper = new IntBinMapper< T >( min, max );
+						final Histogram< T > histo = new Histogram< T >( mapper, c );
+
+						if ( !histo.checkInput() || !histo.process() )
+						{
+							errorMessage = BASE_ERROR_MESSAGE + histo.getErrorMessage();
+							ok.set( false );
+							return;
+						}
+
+						// Put result in an int array
+						final int[] histogram = histo.getHistogram();
+
+						// Get Otsu threshold
+						int threshold = otsuThresholdIndex( histogram, slice.size() );
+						threshold = ( int ) ( threshold * levelFactor );
+
+						// Iterate over target image in the plane
+						final Cursor< T > cursor = slice.cursor();
+						final RandomAccess< BitType > ra = Views.hyperSlice( target, 2, z ).randomAccess( slice );
+
+						while ( cursor.hasNext() )
+						{
+							cursor.fwd();
+							ra.setPosition( cursor );
+							ra.get().set( cursor.get().getInteger() > threshold );
+						}
+					}
+
+				}
+			};
 		}
-		cursor.close();
-		targetCursor.close();
 
-		return true;
+		SimpleMultiThreading.startAndJoin( threads );
+		return ok.get();
 	}
 
 	@Override
-	public Image<BitType> getResult() {
+	public Img< BitType > getResult()
+	{
 		return target;
 	}
 
-
 	/**
-	 * Given a histogram array <code>hist</code>, built with an initial amount of <code>nPoints</code>
-	 * data item, this method return the bin index that thresholds the histogram in 2 classes.
-	 * The threshold is performed using the Otsu Threshold Method,
-	 * {@link http://www.labbookpages.co.uk/software/imgProc/otsuThreshold.html}.
-	 * @param hist  the histogram array
-	 * @param nPoints  the number of data items this histogram was built on
+	 * Given a histogram array <code>hist</code>, built with an initial amount
+	 * of <code>nPoints</code> data item, this method return the bin index that
+	 * thresholds the histogram in 2 classes. The threshold is performed using
+	 * the Otsu Threshold Method, {@link http
+	 * ://www.labbookpages.co.uk/software/imgProc/otsuThreshold.html}.
+	 * 
+	 * @param hist
+	 *            the histogram array
+	 * @param nPoints
+	 *            the number of data items this histogram was built on
 	 * @return the bin index of the histogram that thresholds it
 	 */
-	public static final int otsuThresholdIndex(final long[] hist, final long nPoints)     {
-		long total = nPoints;
+	public static final int otsuThresholdIndex( final int[] hist, final long nPoints )
+	{
+		final long total = nPoints;
 
 		double sum = 0;
-		for (int t = 0 ; t < hist.length ; t++)
-			sum += t * hist[t];
+		for ( int t = 0; t < hist.length; t++ )
+			sum += t * hist[ t ];
 
 		double sumB = 0;
 		int wB = 0;
@@ -129,29 +154,32 @@ public class OtsuThresholder2D <T extends IntegerType<T>> extends MultiThreadedB
 		double varMax = 0;
 		int threshold = 0;
 
-		for (int t = 0 ; t < hist.length ; t++) {
-			wB += hist[t];               // Weight Background
-			if (wB == 0) continue;
+		for ( int t = 0; t < hist.length; t++ )
+		{
+			wB += hist[ t ]; // Weight Background
+			if ( wB == 0 )
+				continue;
 
-			wF = total - wB;                 // Weight Foreground
-			if (wF == 0) break;
+			wF = total - wB; // Weight Foreground
+			if ( wF == 0 )
+				break;
 
-			sumB += (float) (t * hist[t]);
+			sumB += t * hist[ t ];
 
-			double mB = sumB / wB;            // Mean Background
-			double mF = (sum - sumB) / wF;    // Mean Foreground
+			final double mB = sumB / wB; // Mean Background
+			final double mF = ( sum - sumB ) / wF; // Mean Foreground
 
 			// Calculate Between Class Variance
-			double varBetween = (float)wB * (float)wF * (mB - mF) * (mB - mF);
+			final double varBetween = ( float ) wB * ( float ) wF * ( mB - mF ) * ( mB - mF );
 
 			// Check if new maximum found
-			if (varBetween > varMax) {
+			if ( varBetween > varMax )
+			{
 				varMax = varBetween;
 				threshold = t;
 			}
 		}
 		return threshold;
 	}
-
 
 }
