@@ -9,6 +9,7 @@ import mpicbg.imglib.algorithm.gauss.GaussianFilter2D;
 import mpicbg.imglib.algorithm.gauss.GaussianGradient2D;
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccess;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
 import net.imglib2.algorithm.OutputAlgorithm;
 import net.imglib2.algorithm.pde.PeronaMalikAnisotropicDiffusion;
@@ -59,7 +60,7 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 	private static final String BASE_ERROR_MESSAGE = "[NucleiMasker] ";
 
 	/** The source image (left unchanged). */
-	private final Img< T > image;
+	private final RandomAccessibleInterval< T > image;
 
 	/** The target image for the pre-processing steps. */
 	private Img< FloatType > target;
@@ -116,7 +117,7 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 	 * CONSTRUCTOR
 	 */
 
-	public NucleiMasker( final Img< T > image )
+	public NucleiMasker( final RandomAccessibleInterval< T > image )
 	{
 		super();
 		this.image = image;
