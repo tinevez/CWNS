@@ -26,7 +26,6 @@ import org.jdom2.Element;
 
 import fiji.plugin.trackmate.Model;
 import fiji.plugin.trackmate.Settings;
-import fiji.plugin.trackmate.detection.SpotDetector;
 import fiji.plugin.trackmate.detection.SpotDetectorFactory;
 import fiji.plugin.trackmate.gui.ConfigurationPanel;
 import fiji.plugin.trackmate.util.TMUtils;
@@ -120,7 +119,7 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 	}
 
 	@Override
-	public SpotDetector< T > getDetector( final Interval interval, final int frame )
+	public CrownWearingSegmenter< T > getDetector( final Interval interval, final int frame )
 	{
 		final double[] calibration = TMUtils.getSpatialCalibration( img );
 		RandomAccessibleInterval< T > imFrame;
