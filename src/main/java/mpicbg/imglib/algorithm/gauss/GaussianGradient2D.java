@@ -1,25 +1,46 @@
 package mpicbg.imglib.algorithm.gauss;
 
-import ij.process.ImageConverter;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import net.imglib2.Cursor;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
 import net.imglib2.algorithm.OutputAlgorithm;
-import net.imglib2.converter.RealFloatConverter;
+import net.imglib2.algorithm.gauss3.Gauss3;
+import net.imglib2.algorithm.gradient.PartialDerivative;
+import net.imglib2.exception.IncompatibleTypeException;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
+import net.imglib2.multithreading.Chunk;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Util;
+import net.imglib2.view.ExtendedRandomAccessibleInterval;
+import net.imglib2.view.IntervalView;
+import net.imglib2.view.Views;
+import fiji.plugin.trackmate.detection.DetectionUtils;
 
+/**
+ * Takes the 2D gaussian derivatives.
+ * <p>
+ * 3D images are treated as a series of 2D slices.
+ * 
+ * @author Jean-Yves Tinevez.
+ *
+ * @param <T>
+ */
+@SuppressWarnings( "deprecation" )
+public class GaussianGradient2D< T extends RealType< T >> extends MultiThreadedBenchmarkAlgorithm implements OutputAlgorithm< Img< FloatType > >
+{
 
-public class GaussianGradient2D <T extends RealType<T>> extends MultiThreadedBenchmarkAlgorithm implements OutputAlgorithm<FloatType> {
+	private static final String BASE_ERROR_MSG = "[GaussianGradient2D] ";
 
 	private final Img< T > source;
+
 	private final double sigma;
 
 	private Img< FloatType > Dx;
@@ -28,11 +49,9 @@ public class GaussianGradient2D <T extends RealType<T>> extends MultiThreadedBen
 
 	private final List< Img< FloatType >> components = new ArrayList< Img< FloatType >>( 2 );
 
-
 	/*
 	 * CONSTRUCTOR
 	 */
-
 
 	public GaussianGradient2D( final Img< T > source, final double sigma )
 	{
@@ -41,18 +60,25 @@ public class GaussianGradient2D <T extends RealType<T>> extends MultiThreadedBen
 		this.sigma = sigma;
 	}
 
-
 	/*
 	 * METHODS
 	 */
 
 	@Override
-	public boolean checkInput() {
+	public boolean checkInput()
+	{
+		if ( !( source.numDimensions() == 2 || source.numDimensions() == 3 ) )
+		{
+			errorMessage = BASE_ERROR_MSG + "Only operates on 2D or 3D images.";
+			return false;
+		}
 		return true;
 	}
 
+	@SuppressWarnings( "unchecked" )
 	@Override
-	public boolean process() {
+	public boolean process()
+	{
 		final long start = System.currentTimeMillis();
 
 		// Convert to float; needed to handle negative value properly
@@ -61,137 +87,117 @@ public class GaussianGradient2D <T extends RealType<T>> extends MultiThreadedBen
 		{
 			final Object tmp = source;
 			floatImage = ( Img< FloatType > ) tmp;
-		} else {
-			final ImageConverter<T, FloatType> converter = new ImageConverter<T, FloatType>(
-					source,
-					new ImgFactory< FloatType >( new FloatType(), source.factory() ),
-					new RealFloatConverter< T >() );
-			converter.setNumThreads(numThreads);
-			converter.checkInput();
-			converter.process();
-			floatImage = converter.getResult();
+		}
+		else
+		{
+			final ImgFactory< FloatType > factory = Util.getArrayOrCellImgFactory( source, new FloatType() );
+			floatImage = DetectionUtils.copyToFloatImg( source, source, factory );
 		}
 
-		// In X
-		final GaussianConvolutionReal2D<FloatType> gx = new GaussianConvolutionReal2D<FloatType>(
-				floatImage,
-				new OutOfBoundsStrategyMirrorFactory<FloatType>(),
-				new double[] { sigma, sigma} ) {
+		// Create result holders.
+		final ImgFactory< FloatType > factory = Util.getArrayOrCellImgFactory( floatImage, new FloatType() );
+		Dx = factory.create( floatImage, new FloatType() );
+		Dy = factory.create( floatImage, new FloatType() );
 
-			@Override
-			protected void computeKernel() {
-
-				final double[][] kernel = getKernel();
-				kernel[0] = Util.createGaussianKernel1DDouble( GaussianGradient2D.this.sigma, false );
-				kernel[1] = Util.createGaussianKernel1DDouble( GaussianGradient2D.this.sigma, true );
-				final int kSize = kernel[1].length;
-				for (int i = 0; i < kSize; i++) {
-					kernel[0][i] = kernel[0][i] * (i - (kSize-1)/2) * 2 / GaussianGradient2D.this.sigma;
-				}
-
-			};
-
-		};
-
-		gx.setNumThreads(numThreads);
-		boolean check = gx.checkInput() && gx.process();
-		if (check) {
-			Dx = gx.getResult();
-			Dx.setName("Gx " + source.getName());
-		} else {
-			errorMessage = gx.getErrorMessage();
-			return false;
+		final int ndims = floatImage.numDimensions();
+		if ( ndims == 3 )
+		{
+			final long nz = floatImage.dimension( 2 );
+			for ( int z = 0; z < nz; z++ )
+			{
+				final IntervalView< FloatType > slice = Views.hyperSlice( floatImage, 2, z );
+				final IntervalView< FloatType > targetSliceX = Views.hyperSlice( Dx, 2, z );
+				final IntervalView< FloatType > targetSliceY = Views.hyperSlice( Dy, 2, z );
+				final boolean ok = processSlice( slice, targetSliceX, targetSliceY );
+				if ( !ok ) { return false; }
+			}
 		}
-
-		// In Y
-		final GaussianConvolutionReal2D<FloatType> gy = new GaussianConvolutionReal2D<FloatType>(
-				floatImage,
-				new OutOfBoundsStrategyMirrorFactory<FloatType>(),
-				new double[] { sigma, sigma} ) {
-
-			@Override
-			protected void computeKernel() {
-
-				final double[][] kernel = getKernel();
-				kernel[0] = Util.createGaussianKernel1DDouble( GaussianGradient2D.this.sigma, true );
-				kernel[1] = Util.createGaussianKernel1DDouble( GaussianGradient2D.this.sigma, false );
-				final int kSize = kernel[0].length;
-				for (int i = 0; i < kSize; i++) {
-					kernel[1][i] = kernel[1][i] * (i - (kSize-1)/2) * 2 / GaussianGradient2D.this.sigma;
-				}
-
-			};
-
-		};
-
-		gy.setNumThreads(numThreads);
-		check = gy.checkInput() && gy.process();
-		if (check) {
-			Dy = gy.getResult();
-			Dy.setName("Gy "+source.getName());
-		} else {
-			errorMessage = gy.getErrorMessage();
-			return false;
+		else
+		{
+			final boolean ok = processSlice( floatImage, Dx, Dy );
+			if ( !ok ) { return false; }
 		}
 
 		components.clear();
-		components.add(Dx);
-		components.add(Dy);
+		components.add( Dx );
+		components.add( Dy );
 
 		final long end = System.currentTimeMillis();
-		processingTime = end-start;
+		processingTime = end - start;
 		return true;
 	}
 
+	private boolean processSlice( final RandomAccessibleInterval< FloatType > src, final RandomAccessibleInterval< FloatType > dx, final RandomAccessibleInterval< FloatType > dy )
+	{
+		// Gaussian filter.
+		final ExtendedRandomAccessibleInterval< FloatType, RandomAccessibleInterval< FloatType >> extended = Views.extendMirrorSingle( src );
+		try
+		{
+			Gauss3.gauss( new double[] { sigma, sigma }, extended, src, numThreads );
+		}
+		catch ( final IncompatibleTypeException e )
+		{
+			errorMessage = BASE_ERROR_MSG + "Incompatible types: " + e.getMessage();
+			e.printStackTrace();
+			return false;
+		}
 
-	public List<Image<FloatType>> getGradientComponents() {
+		// Derivatives
+		PartialDerivative.gradientCentralDifference2( extended, dx, 0 );
+		PartialDerivative.gradientCentralDifference2( extended, dy, 1 );
+
+		return true;
+	}
+
+	public List< Img< FloatType >> getGradientComponents()
+	{
 		return components;
 	}
 
-
 	/**
-	 * Return the gradient norm
+	 * Returns the gradient norm.
 	 */
 	@Override
-	public Image<FloatType> getResult() {
-		final Image<FloatType> norm = Dx.createNewImage("Gradient norm of "+source.getName());
+	public Img< FloatType > getResult()
+	{
+		final Img< FloatType > norm = Dx.factory().create( Dx, new FloatType() );
 
-		final Vector<Chunk> chunks = SimpleMultiThreading.divideIntoChunks(norm.getNumPixels(), numThreads);
+		final Vector< Chunk > chunks = SimpleMultiThreading.divideIntoChunks( norm.size(), numThreads );
 		final AtomicInteger ai = new AtomicInteger();
 
-		final Thread[] threads = new Thread[chunks.size()];
-		for (int i = 0; i < threads.length; i++) {
-			threads[i] = new Thread("Gradient norm thread "+i) {
+		final Thread[] threads = new Thread[ chunks.size() ];
+		for ( int i = 0; i < threads.length; i++ )
+		{
+			threads[ i ] = new Thread( "Gradient norm thread " + i )
+			{
 				@Override
-				public void run() {
+				public void run()
+				{
 
-					final Chunk chunk = chunks.get(ai.getAndIncrement());
+					final Chunk chunk = chunks.get( ai.getAndIncrement() );
 
-					final Cursor<FloatType> cx = Dx.createCursor();
-					final Cursor<FloatType> cy = Dy.createCursor();
-					final Cursor<FloatType> cn = norm.createCursor();
+					final Cursor< FloatType > cx = Dx.cursor();
+					final Cursor< FloatType > cy = Dy.cursor();
+					final Cursor< FloatType > cn = norm.cursor();
 
 					double x, y;
-					cn.fwd(chunk.getStartPosition());
-					cx.fwd(chunk.getStartPosition());
-					cy.fwd(chunk.getStartPosition());
-					for (long j = 0; j < chunk.getLoopSize(); j++) {
+					cn.jumpFwd( chunk.getStartPosition() );
+					cx.jumpFwd( chunk.getStartPosition() );
+					cy.jumpFwd( chunk.getStartPosition() );
+					for ( long j = 0; j < chunk.getLoopSize(); j++ )
+					{
 						cn.fwd();
 						cx.fwd();
 						cy.fwd(); // Ok because we have identical containers
-						x = cx.getType().get();
-						y = cy.getType().get();
-						cn.getType().setReal(FastMath.sqrt(x*x+y*y));
+						x = cx.get().get();
+						y = cy.get().get();
+						cn.get().setReal( Math.sqrt( x * x + y * y ) );
 					}
-					cx.close();
-					cy.close();
-					cn.close();
 				}
-
 			};
 		}
 
-		SimpleMultiThreading.startAndJoin(threads);
+		SimpleMultiThreading.startAndJoin( threads );
 		return norm;
 	}
 
