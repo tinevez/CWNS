@@ -23,6 +23,7 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.view.Views;
 
 import org.jdom2.Element;
+import org.scijava.plugin.Plugin;
 
 import fiji.plugin.trackmate.Model;
 import fiji.plugin.trackmate.Settings;
@@ -31,6 +32,7 @@ import fiji.plugin.trackmate.gui.ConfigurationPanel;
 import fiji.plugin.trackmate.util.TMUtils;
 
 @SuppressWarnings( "deprecation" )
+@Plugin( type = SpotDetectorFactory.class )
 public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType< T >> implements SpotDetectorFactory< T >
 {
 	
@@ -232,7 +234,7 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 		final Map< String, Object > settings = new HashMap< String, Object >();
 		settings.put( SIGMA_F_PARAMETER, 0.5 );
 		settings.put( N_AD_PARAMETER, 5 );
-		settings.put( KAPPA_PARAMETER, 50 );
+		settings.put( KAPPA_PARAMETER, 50.0 );
 		settings.put( SIGMA_G_PARAMETER, 1.0 );
 		settings.put( GAMMA_PARAMETER, 1.0 );
 		settings.put( ALPHA_PARAMETER, 2.7 );

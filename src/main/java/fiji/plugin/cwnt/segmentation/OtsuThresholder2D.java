@@ -4,7 +4,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.imglib2.Cursor;
+import net.imglib2.IterableInterval;
 import net.imglib2.RandomAccess;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealCursor;
 import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
 import net.imglib2.algorithm.OutputAlgorithm;
@@ -17,7 +19,6 @@ import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.logic.BitType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
 
 @SuppressWarnings( "deprecation" )
@@ -67,6 +68,7 @@ public class OtsuThresholder2D< T extends RealType< T >> extends MultiThreadedBe
 			threads[ i ] = new Thread( BASE_ERROR_MESSAGE + "Otsu tresholder thread " + i )
 			{
 
+				@SuppressWarnings( "unchecked" )
 				@Override
 				public void run()
 				{
@@ -74,12 +76,23 @@ public class OtsuThresholder2D< T extends RealType< T >> extends MultiThreadedBe
 					for ( int z = aj.getAndIncrement(); z < nslices; z = aj.getAndIncrement() )
 					{
 
-						final IntervalView< T > slice = Views.hyperSlice( source, 2, z );
+						final IterableInterval< T > slice;
+						final RandomAccess< BitType > ra ;
+						if ( source.numDimensions() > 2 )
+						{
+							slice = Views.hyperSlice( source, 2, z );
+							ra = Views.hyperSlice( target, 2, z ).randomAccess( slice );
+						}
+						else
+						{
+							slice = source;
+							ra = target.randomAccess( source );
+						}
 
 						// Find min & max inside plane.
 						final T min = source.firstElement().createVariable();
 						final T max = source.firstElement().createVariable();
-						ComputeMinMax.computeMinMax( slice, min, max );
+						ComputeMinMax.computeMinMax( ( RandomAccessibleInterval< T > ) slice, min, max );
 
 						// Compute histogram.
 						final RealCursor< T > c = slice.cursor();
@@ -103,7 +116,6 @@ public class OtsuThresholder2D< T extends RealType< T >> extends MultiThreadedBe
 
 						// Iterate over target image in the plane
 						final Cursor< T > cursor = slice.cursor();
-						final RandomAccess< BitType > ra = Views.hyperSlice( target, 2, z ).randomAccess( slice );
 
 						while ( cursor.hasNext() )
 						{

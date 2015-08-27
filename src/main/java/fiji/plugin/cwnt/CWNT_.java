@@ -773,7 +773,7 @@ public class CWNT_ implements PlugIn
 	{
 
 //		File testImage = new File("E:/Users/JeanYves/Documents/Projects/BRajaseka/Data/Meta-nov7mdb18ssplus-embryo2-1.tif");
-		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/Meta-nov7mdb18ssplus-embryo2-2.tif" );
+		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/Meta-nov7mdb18ssplus-embryo2-1.tif" );
 
 		ImageJ.main( args );
 		final ImagePlus imp = IJ.openImage( testImage.getAbsolutePath() );
@@ -891,5 +891,4 @@ public class CWNT_ implements PlugIn
 		target.setBounds( x + s.x, y + s.y, target.getWidth(), target.getHeight() );
 
 	}
-
 }

@@ -754,8 +754,17 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 				{
 					for ( int z = aj.getAndIncrement(); z < nslices; z = aj.getAndIncrement() )
 					{
-						final IntervalView< FloatType > slice = Views.hyperSlice( anDiffImage, 2, z );
-						final PeronaMalikAnisotropicDiffusion< FloatType > andiff = new PeronaMalikAnisotropicDiffusion< FloatType >( slice, new ArrayImgFactory< FloatType >(), 1, kappa );
+						final PeronaMalikAnisotropicDiffusion< FloatType > andiff;
+
+						if ( anDiffImage.numDimensions() > 2 )
+						{
+							final IntervalView< FloatType > slice = Views.hyperSlice( anDiffImage, 2, z );
+							andiff = new PeronaMalikAnisotropicDiffusion< FloatType >( slice, new ArrayImgFactory< FloatType >(), 0.1, kappa );
+						}
+						else
+						{
+							andiff = new PeronaMalikAnisotropicDiffusion< FloatType >( anDiffImage, new ArrayImgFactory< FloatType >(), 0.1, kappa );
+						}
 						andiff.setNumThreads( 1 );
 						boolean check = andiff.checkInput();
 						for ( int i = 0; i < nIterAnDiff; i++ )

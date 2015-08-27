@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.swing.JButton;
+import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
@@ -48,7 +49,7 @@ public class CWNTPanel extends ConfigurationPanel
 
 	private JTabbedPane tabbedPane;
 
-	private final double[] maskingParams = new double[ 9 ];
+	private final double[] maskingParams;
 
 	private double thresholdFactor;
 
@@ -56,41 +57,41 @@ public class CWNTPanel extends ConfigurationPanel
 
 	private DoubleJSlider gaussFiltSigmaSlider;
 
-	private JTextField gaussFiltSigmaText;
+	private JFormattedTextField gaussFiltSigmaText;
 
-	private JTextField aniDiffNIterText;
+	private JFormattedTextField aniDiffNIterText;
 
 	private DoubleJSlider aniDiffNIterSlider;
 
-	private JTextField aniDiffKappaText;
+	private JFormattedTextField aniDiffKappaText;
 
 	private DoubleJSlider aniDiffKappaSlider;
 
-	private JTextField gaussGradSigmaText;
+	private JFormattedTextField gaussGradSigmaText;
 
 	private DoubleJSlider gaussGradSigmaSlider;
 
 	private DoubleJSlider gammaSlider;
 
-	private JTextField gammaText;
+	private JFormattedTextField gammaText;
 
 	private DoubleJSlider alphaSlider;
 
-	private JTextField alphaText;
+	private JFormattedTextField alphaText;
 
 	private DoubleJSlider betaSlider;
 
-	private JTextField betaText;
+	private JFormattedTextField betaText;
 
 	private DoubleJSlider epsilonSlider;
 
-	private JTextField epsilonText;
+	private JFormattedTextField epsilonText;
 
-	private JTextField deltaText;
+	private JFormattedTextField deltaText;
 
 	private DoubleJSlider deltaSlider;
 
-	private JTextField thresholdFactorText;
+	private JFormattedTextField thresholdFactorText;
 
 	private DoubleJSlider thresholdFactorSlider;
 
@@ -104,9 +105,11 @@ public class CWNTPanel extends ConfigurationPanel
 
 	JLabel labelDurationEstimate;;
 
+	@SuppressWarnings( { "rawtypes", "unchecked" } )
 	public CWNTPanel( final ImagePlus imp )
 	{
 		targetImp = imp;
+		maskingParams = CrownWearingSegmenterFactory.collectMaskingParameters( new CrownWearingSegmenterFactory().getDefaultSettings() );
 		initGUI();
 		setSize( 293, 438 );
 	}
@@ -133,7 +136,7 @@ public class CWNTPanel extends ConfigurationPanel
 		collectMaskingParameters();
 		final HashMap< String, Object > settings = new HashMap< String, Object >( 10 );
 		settings.put( SIGMA_F_PARAMETER, maskingParams[ 0 ] );
-		settings.put( N_AD_PARAMETER, maskingParams[ 1 ] );
+		settings.put( N_AD_PARAMETER, ( int ) maskingParams[ 1 ] ); // nAD
 		settings.put( KAPPA_PARAMETER, maskingParams[ 2 ] );
 		settings.put( SIGMA_G_PARAMETER, maskingParams[ 3 ] );
 		settings.put( GAMMA_PARAMETER, maskingParams[ 4 ] );
@@ -400,7 +403,7 @@ public class CWNTPanel extends ConfigurationPanel
 				gaussFiltSigmaSlider.setBounds( 10, 76, 223, 23 );
 				panelParams1.add( gaussFiltSigmaSlider );
 
-				gaussFiltSigmaText = new JTextField( "" + maskingParams[ 0 ] );
+				gaussFiltSigmaText = new JFormattedTextField( new Double( maskingParams[ 0 ] ) );
 				gaussFiltSigmaText.setHorizontalAlignment( SwingConstants.CENTER );
 				gaussFiltSigmaText.setBounds( 243, 76, 35, 23 );
 				gaussFiltSigmaText.setFont( FONT );
@@ -422,14 +425,13 @@ public class CWNTPanel extends ConfigurationPanel
 				lblNumberOfIterations.setBounds( 10, 168, 268, 14 );
 				panelParams1.add( lblNumberOfIterations );
 
-				aniDiffNIterText = new JTextField();
+				aniDiffNIterText = new JFormattedTextField( new Integer( ( int ) maskingParams[ 1 ] ) );
 				aniDiffNIterText.setHorizontalAlignment( SwingConstants.CENTER );
-				aniDiffNIterText.setText( "" + maskingParams[ 1 ] );
 				aniDiffNIterText.setFont( FONT );
 				aniDiffNIterText.setBounds( 243, 193, 35, 23 );
 				panelParams1.add( aniDiffNIterText );
 
-				aniDiffNIterSlider = new DoubleJSlider( 1, 10, ( int ) maskingParams[ 1 ], 1 );
+				aniDiffNIterSlider = new DoubleJSlider( 0, 10, ( int ) maskingParams[ 1 ], 1 );
 				aniDiffNIterSlider.setBounds( 10, 193, 223, 23 );
 				panelParams1.add( aniDiffNIterSlider );
 
@@ -445,9 +447,8 @@ public class CWNTPanel extends ConfigurationPanel
 				lblGradientDiffusionThreshold.setBounds( 10, 227, 268, 14 );
 				panelParams1.add( lblGradientDiffusionThreshold );
 
-				aniDiffKappaText = new JTextField();
+				aniDiffKappaText = new JFormattedTextField( new Double( maskingParams[ 2 ] ) );
 				aniDiffKappaText.setHorizontalAlignment( SwingConstants.CENTER );
-				aniDiffKappaText.setText( "" + maskingParams[ 2 ] );
 				aniDiffKappaText.setFont( FONT );
 				aniDiffKappaText.setBounds( 243, 252, 35, 23 );
 				panelParams1.add( aniDiffKappaText );
@@ -472,10 +473,9 @@ public class CWNTPanel extends ConfigurationPanel
 				lblGaussianGradient.setBounds( 10, 338, 268, 14 );
 				panelParams1.add( lblGaussianGradient );
 
-				gaussGradSigmaText = new JTextField();
+				gaussGradSigmaText = new JFormattedTextField( new Double( maskingParams[ 3 ] ) );
 				gaussGradSigmaText.setFont( FONT );
 				gaussGradSigmaText.setHorizontalAlignment( SwingConstants.CENTER );
-				gaussGradSigmaText.setText( "" + maskingParams[ 3 ] );
 				gaussGradSigmaText.setBounds( 243, 363, 35, 23 );
 				panelParams1.add( gaussGradSigmaText );
 
@@ -510,8 +510,7 @@ public class CWNTPanel extends ConfigurationPanel
 				gammaSlider.setBounds( 10, 76, 223, 23 );
 				panelParams2.add( gammaSlider );
 
-				gammaText = new JTextField();
-				gammaText.setText( "" + maskingParams[ 4 ] );
+				gammaText = new JFormattedTextField( new Double( maskingParams[ 4 ] ) );
 				gammaText.setFont( FONT );
 				gammaText.setBounds( 243, 76, 35, 23 );
 				panelParams2.add( gammaText );
@@ -530,7 +529,7 @@ public class CWNTPanel extends ConfigurationPanel
 				alphaSlider.setBounds( 10, 135, 223, 23 );
 				panelParams2.add( alphaSlider );
 
-				alphaText = new JTextField( "" + maskingParams[ 5 ] );
+				alphaText = new JFormattedTextField( new Double( maskingParams[ 5 ] ) );
 				alphaText.setFont( FONT );
 				alphaText.setBounds( 243, 135, 35, 23 );
 				panelParams2.add( alphaText );
@@ -549,9 +548,8 @@ public class CWNTPanel extends ConfigurationPanel
 				betaSlider.setBounds( 10, 194, 223, 23 );
 				panelParams2.add( betaSlider );
 
-				betaText = new JTextField();
+				betaText = new JFormattedTextField( new Double( maskingParams[ 6 ] ) );
 				betaText.setFont( FONT );
-				betaText.setText( "" + maskingParams[ 6 ] );
 				betaText.setBounds( 243, 194, 35, 23 );
 				panelParams2.add( betaText );
 
@@ -569,7 +567,7 @@ public class CWNTPanel extends ConfigurationPanel
 				epsilonSlider.setBounds( 10, 253, 223, 23 );
 				panelParams2.add( epsilonSlider );
 
-				epsilonText = new JTextField();
+				epsilonText = new JFormattedTextField( new Double( maskingParams[ 7 ] ) );
 				epsilonText.setFont( FONT );
 				epsilonText.setText( "" + maskingParams[ 7 ] );
 				epsilonText.setBounds( 243, 253, 35, 23 );
@@ -585,7 +583,7 @@ public class CWNTPanel extends ConfigurationPanel
 				deltaLabel.setBounds( 10, 287, 268, 14 );
 				panelParams2.add( deltaLabel );
 
-				deltaText = new JTextField();
+				deltaText = new JFormattedTextField( new Double( maskingParams[ 8 ] ) );
 				deltaText.setFont( FONT );
 				deltaText.setText( "" + maskingParams[ 8 ] );
 				deltaText.setBounds( 243, 312, 35, 23 );
@@ -626,8 +624,7 @@ public class CWNTPanel extends ConfigurationPanel
 			thresholdFactorSlider.setBounds( 10, 75, 223, 23 );
 			panel.add( thresholdFactorSlider );
 
-			thresholdFactorText = new JTextField();
-			thresholdFactorText.setText( "" + thresholdFactor );
+			thresholdFactorText = new JFormattedTextField( new Double( thresholdFactor ) );
 			thresholdFactorText.setFont( FONT );
 			thresholdFactorText.setBounds( 243, 75, 35, 23 );
 			panel.add( thresholdFactorText );
