@@ -1,6 +1,5 @@
 package fiji.plugin.cwnt.gui;
 
-import static fiji.plugin.cwnt.segmentation.CrownWearingSegmenter.INTRO_TEXT;
 
 import java.awt.BorderLayout;
 import java.awt.Font;
@@ -13,6 +12,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -23,18 +23,23 @@ import javax.swing.SwingConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import fiji.plugin.cwnt.segmentation.CWSettings;
+import fiji.plugin.cwnt.segmentation.CrownWearingSegmenterFactory;
 import fiji.plugin.cwnt.segmentation.NucleiMasker;
-import fiji.plugin.trackmate.TrackMateModel;
-import fiji.plugin.trackmate.gui.ActionChooserPanel;
-import fiji.plugin.trackmate.gui.DisplayerPanel;
-import fiji.plugin.trackmate.gui.SegmenterConfigurationPanel;
-import fiji.plugin.trackmate.segmentation.SegmenterSettings;
+import fiji.plugin.trackmate.Model;
+import fiji.plugin.trackmate.Settings;
+import fiji.plugin.trackmate.TrackMate;
+import fiji.plugin.trackmate.gui.ConfigurationPanel;
+import fiji.plugin.trackmate.gui.DisplaySettingsEvent;
+import fiji.plugin.trackmate.gui.DisplaySettingsListener;
+import fiji.plugin.trackmate.gui.panels.ActionChooserPanel;
+import fiji.plugin.trackmate.gui.panels.ConfigureViewsPanel;
+import fiji.plugin.trackmate.providers.ActionProvider;
 import fiji.plugin.trackmate.visualization.TrackMateModelView;
 
-public class CwntGui extends SegmenterConfigurationPanel {
+public class CwntGui extends ConfigurationPanel
+{
 
-	private static final long serialVersionUID = 8311893056188053483L;
+	private static final long serialVersionUID = 1L;
 
 	/*
 	 * EVENTS
@@ -56,38 +61,46 @@ public class CwntGui extends SegmenterConfigurationPanel {
 	 * LOCAL LISTENERS
 	 */
 
-	private ArrayList<ActionListener> listeners = new ArrayList<ActionListener>();
+	private final ArrayList<ActionListener> listeners = new ArrayList<ActionListener>();
 
-	private ChangeListener step1ChangeListener = new ChangeListener() {
-		public void stateChanged(ChangeEvent e) { fireEvent(STEP1_PARAMETER_CHANGED);	}
+	private final ChangeListener step1ChangeListener = new ChangeListener() {
+		@Override
+		public void stateChanged(final ChangeEvent e) { fireEvent(STEP1_PARAMETER_CHANGED);	}
 	};
 
-	private ChangeListener step2ChangeListener = new ChangeListener() {
-		public void stateChanged(ChangeEvent e) { fireEvent(STEP2_PARAMETER_CHANGED); }
+	private final ChangeListener step2ChangeListener = new ChangeListener() {
+		@Override
+		public void stateChanged(final ChangeEvent e) { fireEvent(STEP2_PARAMETER_CHANGED); }
 	};
 
-	private ChangeListener step3ChangeListener = new ChangeListener() {
-		public void stateChanged(ChangeEvent e) { fireEvent(STEP3_PARAMETER_CHANGED); }
+	private final ChangeListener step3ChangeListener = new ChangeListener() {
+		@Override
+		public void stateChanged(final ChangeEvent e) { fireEvent(STEP3_PARAMETER_CHANGED); }
 	};
 
-	private ChangeListener step4ChangeListener = new ChangeListener() {
-		public void stateChanged(ChangeEvent e) { fireEvent(STEP4_PARAMETER_CHANGED); }
+	private final ChangeListener step4ChangeListener = new ChangeListener() {
+		@Override
+		public void stateChanged(final ChangeEvent e) { fireEvent(STEP4_PARAMETER_CHANGED); }
 	};
 
-	private KeyListener step1KeyListener = new KeyAdapter() {
-		public void keyReleased(KeyEvent ke) { fireEvent(STEP1_PARAMETER_CHANGED); 	}
+	private final KeyListener step1KeyListener = new KeyAdapter() {
+		@Override
+		public void keyReleased(final KeyEvent ke) { fireEvent(STEP1_PARAMETER_CHANGED); 	}
 	};
 
-	private KeyListener step2KeyListener = new KeyAdapter() {
-		public void keyReleased(KeyEvent ke) { fireEvent(STEP2_PARAMETER_CHANGED); 	}
+	private final KeyListener step2KeyListener = new KeyAdapter() {
+		@Override
+		public void keyReleased(final KeyEvent ke) { fireEvent(STEP2_PARAMETER_CHANGED); 	}
 	};
 
-	private KeyListener step3KeyListener = new KeyAdapter() {
-		public void keyReleased(KeyEvent ke) { fireEvent(STEP3_PARAMETER_CHANGED); 	}
+	private final KeyListener step3KeyListener = new KeyAdapter() {
+		@Override
+		public void keyReleased(final KeyEvent ke) { fireEvent(STEP3_PARAMETER_CHANGED); 	}
 	};
 
-	private KeyListener step4KeyListener = new KeyAdapter() {
-		public void keyReleased(KeyEvent ke) { fireEvent(STEP4_PARAMETER_CHANGED); 	}
+	private final KeyListener step4KeyListener = new KeyAdapter() {
+		@Override
+		public void keyReleased(final KeyEvent ke) { fireEvent(STEP4_PARAMETER_CHANGED); 	}
 	};
 
 
@@ -113,7 +126,7 @@ public class CwntGui extends SegmenterConfigurationPanel {
 
 	private JTabbedPane tabbedPane;
 
-	private int scale = 10;
+	private final int scale = 10;
 	private final DecimalFormat df2d = new DecimalFormat("0.####");
 	private JTextField gaussFiltSigmaText;
 	private DoubleJSlider gaussFiltSigmaSlider;
@@ -172,33 +185,38 @@ public class CwntGui extends SegmenterConfigurationPanel {
 	 * PUBLIC METHODS
 	 */
 
-	public void addActionListener(ActionListener listener) {
+	@Override
+	public void addActionListener(final ActionListener listener) {
 		listeners.add(listener);
 	}
 
-	public boolean removeActionListener(ActionListener listener) {
+	@Override
+	public boolean removeActionListener(final ActionListener listener) {
 		return listeners.remove(listener);
 	}
 
+	@Override
 	public List<ActionListener> getActionListeners() {
 		return listeners;
 	}
 
-	public void setDurationEstimate(double t) {
+	public void setDurationEstimate(final double t) {
 		lblEstimatedTime.setText(String.format("Processing duration estimate: %.0f min.", t));
 	}
+	
 
 	@Override
-	public void setSegmenterSettings(TrackMateModel model) {
-		CWSettings settings = (CWSettings) model.getSettings().segmenterSettings;
-		setParameters(settings.getMaskingParameters());
-		labelTargetImage.setText(model.getSettings().imp.getShortTitle());
+	public void setSettings( final Map< String, Object > settings )
+	{
+		setParameters(settings);
 	}
 
+	@SuppressWarnings( { "unchecked", "rawtypes" } )
 	@Override
-	public SegmenterSettings getSegmenterSettings() {
-		CWSettings settings = new CWSettings();
-		settings.putMaskingParameters(params);
+	public Map< String, Object > getSettings()
+	{
+		final Map< String, Object > settings = new CrownWearingSegmenterFactory().getDefaultSettings();
+		CrownWearingSegmenterFactory.putMaskingParameters( params, settings );
 		return settings;
 	}
 
@@ -223,8 +241,9 @@ public class CwntGui extends SegmenterConfigurationPanel {
 		return params;
 	}
 
-	private void setParameters(double[] params) {
-		System.arraycopy(params, 0, this.params, 0, params.length);
+	private void setParameters(final Map< String, Object > settings ) {
+		final double[] p = CrownWearingSegmenterFactory.collectMaskingParameters( settings );
+		System.arraycopy(p, 0, this.params, 0, p.length);
 	}
 
 	public int getSelectedIndex() {
@@ -236,15 +255,15 @@ public class CwntGui extends SegmenterConfigurationPanel {
 	 */
 
 	private double[] collectParameters() throws NumberFormatException {
-		double gaussFilterSigma = Double.parseDouble(gaussFiltSigmaText.getText());
-		double nIterAnDiff = (int)  Double.parseDouble(aniDiffNIterText.getText());
-		double kappa = Double.parseDouble(aniDiffKappaText.getText());
-		double gaussGradSigma = Double.parseDouble(gaussGradSigmaText.getText());
-		double gamma = Double.parseDouble(gammaText.getText());
-		double alpha = Double.parseDouble(alphaText.getText());
-		double beta = Double.parseDouble(betaText.getText());
-		double epsilon = Double.parseDouble(epsilonText.getText());
-		double delta = Double.parseDouble(deltaText.getText());
+		final double gaussFilterSigma = Double.parseDouble(gaussFiltSigmaText.getText());
+		final double nIterAnDiff = (int)  Double.parseDouble(aniDiffNIterText.getText());
+		final double kappa = Double.parseDouble(aniDiffKappaText.getText());
+		final double gaussGradSigma = Double.parseDouble(gaussGradSigmaText.getText());
+		final double gamma = Double.parseDouble(gammaText.getText());
+		final double alpha = Double.parseDouble(alphaText.getText());
+		final double beta = Double.parseDouble(betaText.getText());
+		final double epsilon = Double.parseDouble(epsilonText.getText());
+		final double delta = Double.parseDouble(deltaText.getText());
 		return new double[] {
 				gaussFilterSigma,
 				nIterAnDiff,
@@ -265,7 +284,7 @@ public class CwntGui extends SegmenterConfigurationPanel {
 				event == STEP4_PARAMETER_CHANGED) {
 			try {
 				params = collectParameters();
-			} catch (NumberFormatException nfe) {
+			} catch (final NumberFormatException nfe) {
 				return;
 			}
 			if (Arrays.equals(params, oldParams)) {
@@ -274,7 +293,7 @@ public class CwntGui extends SegmenterConfigurationPanel {
 
 			oldParams = Arrays.copyOf(params, params.length);
 		}
-		for (ActionListener listener : listeners) {
+		for (final ActionListener listener : listeners) {
 			listener.actionPerformed(event);
 		}
 	}
@@ -285,56 +304,57 @@ public class CwntGui extends SegmenterConfigurationPanel {
 
 		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		tabbedPane.addChangeListener(new ChangeListener() {
-			public void stateChanged(ChangeEvent e) { fireEvent(TAB_CHANGED);	}
+			@Override
+			public void stateChanged(final ChangeEvent e) { fireEvent(TAB_CHANGED);	}
 		});
 		add(tabbedPane);
 
 		{
-			JPanel panelIntroduction = new JPanel();
+			final JPanel panelIntroduction = new JPanel();
 			tabbedPane.addTab("Intro", null, panelIntroduction, null);
 			panelIntroduction.setLayout(null);
 
-			JLabel lblCrownwearingNucleiTracker = new JLabel("Crown-Wearing Nuclei Tracker");
+			final JLabel lblCrownwearingNucleiTracker = new JLabel("Crown-Wearing Nuclei Tracker");
 			lblCrownwearingNucleiTracker.setFont(BIG_LABEL_FONT);
 			lblCrownwearingNucleiTracker.setHorizontalAlignment(SwingConstants.CENTER);
 			lblCrownwearingNucleiTracker.setBounds(10, 11, 325, 30);
 			panelIntroduction.add(lblCrownwearingNucleiTracker);
 
-			JLabel lblTargetImage = new JLabel("Target image:");
+			final JLabel lblTargetImage = new JLabel("Target image:");
 			lblTargetImage.setFont(MEDIUM_LABEL_FONT);
 			lblTargetImage.setBounds(10, 52, 325, 19);
 			panelIntroduction.add(lblTargetImage);
 
-			labelTargetImage = new JLabel();
+			labelTargetImage = new JLabel( "name goes there" ); // TODO
 			labelTargetImage.setHorizontalAlignment(SwingConstants.CENTER);
 			labelTargetImage.setFont(MEDIUM_LABEL_FONT);
 			labelTargetImage.setBounds(10, 82, 325, 19);
 			panelIntroduction.add(labelTargetImage);
 
-			JLabel labelIntro = new JLabel(INTRO_TEXT);
+			final JLabel labelIntro = new JLabel( CrownWearingSegmenterFactory.INFO_TEXT );
 			labelIntro.setFont(SMALL_LABEL_FONT.deriveFont(11f));
 			labelIntro.setBounds(10, 112, 325, 358);
 			panelIntroduction.add(labelIntro);
 		}
 
-		JPanel panelParams1 = new JPanel();
+		final JPanel panelParams1 = new JPanel();
 		{
 			tabbedPane.addTab("Param set 1", null, panelParams1, null);
 			panelParams1.setLayout(null);
 
-			JLabel lblNewLabel = new JLabel("Parameter set 1");
+			final JLabel lblNewLabel = new JLabel("Parameter set 1");
 			lblNewLabel.setFont(BIG_LABEL_FONT);
 			lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
 			lblNewLabel.setBounds(10, 11, 325, 29);
 			panelParams1.add(lblNewLabel);
 
-			JLabel lblFiltering = new JLabel("1. Filtering");
+			final JLabel lblFiltering = new JLabel("1. Filtering");
 			lblFiltering.setFont(MEDIUM_LABEL_FONT);
 			lblFiltering.setBounds(10, 64, 325, 29);
 			panelParams1.add(lblFiltering);
 
 			{
-				JLabel lblGaussianFilter = new JLabel("Gaussian filter \u03C3:");
+				final JLabel lblGaussianFilter = new JLabel("Gaussian filter \u03C3:");
 				lblGaussianFilter.setFont(SMALL_LABEL_FONT);
 				lblGaussianFilter.setBounds(10, 104, 325, 14);
 				panelParams1.add(lblGaussianFilter);
@@ -354,13 +374,13 @@ public class CwntGui extends SegmenterConfigurationPanel {
 				gaussFiltSigmaText.addKeyListener(step1KeyListener);
 			}
 
-			JLabel lblAnisotropicDiffusion = new JLabel("2. Anisotropic diffusion");
+			final JLabel lblAnisotropicDiffusion = new JLabel("2. Anisotropic diffusion");
 			lblAnisotropicDiffusion.setFont(MEDIUM_LABEL_FONT);
 			lblAnisotropicDiffusion.setBounds(10, 181, 325, 29);
 			panelParams1.add(lblAnisotropicDiffusion);
 
 			{
-				JLabel lblNumberOfIterations = new JLabel("Number of iterations:");
+				final JLabel lblNumberOfIterations = new JLabel("Number of iterations:");
 				lblNumberOfIterations.setFont(SMALL_LABEL_FONT);
 				lblNumberOfIterations.setBounds(10, 221, 325, 14);
 				panelParams1.add(lblNumberOfIterations);
@@ -383,7 +403,7 @@ public class CwntGui extends SegmenterConfigurationPanel {
 			}
 
 			{
-				JLabel lblGradientDiffusionThreshold = new JLabel("Gradient diffusion threshold \u03BA:");
+				final JLabel lblGradientDiffusionThreshold = new JLabel("Gradient diffusion threshold \u03BA:");
 				lblGradientDiffusionThreshold.setFont(SMALL_LABEL_FONT);
 				lblGradientDiffusionThreshold.setBounds(10, 280, 325, 14);
 				panelParams1.add(lblGradientDiffusionThreshold);
@@ -404,13 +424,13 @@ public class CwntGui extends SegmenterConfigurationPanel {
 				aniDiffKappaText.addKeyListener(step2KeyListener);
 			}
 
-			JLabel lblDerivativesCalculation = new JLabel("3. Derivatives calculation");
+			final JLabel lblDerivativesCalculation = new JLabel("3. Derivatives calculation");
 			lblDerivativesCalculation.setFont(new Font("Arial", Font.PLAIN, 16));
 			lblDerivativesCalculation.setBounds(10, 351, 325, 29);
 			panelParams1.add(lblDerivativesCalculation);
 
 			{
-				JLabel lblGaussianGradient = new JLabel("Gaussian gradient \u03C3:");
+				final JLabel lblGaussianGradient = new JLabel("Gaussian gradient \u03C3:");
 				lblGaussianGradient.setFont(new Font("Arial", Font.PLAIN, 12));
 				lblGaussianGradient.setBounds(10, 391, 325, 14);
 				panelParams1.add(lblGaussianGradient);
@@ -432,25 +452,25 @@ public class CwntGui extends SegmenterConfigurationPanel {
 
 		}
 
-		JPanel panelParams2 = new JPanel();
+		final JPanel panelParams2 = new JPanel();
 		{
 			tabbedPane.addTab("Param set 2", panelParams2);
 			panelParams2.setLayout(null);
 
-			JLabel lblParameterSet = new JLabel("Parameter set 2");
+			final JLabel lblParameterSet = new JLabel("Parameter set 2");
 			lblParameterSet.setHorizontalAlignment(SwingConstants.CENTER);
 			lblParameterSet.setFont(BIG_LABEL_FONT);
 			lblParameterSet.setBounds(10, 11, 325, 29);
 			panelParams2.add(lblParameterSet);
 
-			JLabel lblMasking = new JLabel("4. Masking");
+			final JLabel lblMasking = new JLabel("4. Masking");
 			lblMasking.setFont(MEDIUM_LABEL_FONT);
 			lblMasking.setBounds(10, 51, 325, 29);
 			panelParams2.add(lblMasking);
 
 
 			{
-				JLabel gammeLabel = new JLabel("\u03B3: tanh shift");
+				final JLabel gammeLabel = new JLabel("\u03B3: tanh shift");
 				gammeLabel.setFont(SMALL_LABEL_FONT);
 				gammeLabel.setBounds(10, 106, 325, 14);
 				panelParams2.add(gammeLabel);
@@ -470,7 +490,7 @@ public class CwntGui extends SegmenterConfigurationPanel {
 				gammaSlider.addKeyListener(step4KeyListener);
 			}
 			{
-				JLabel lblNewLabel_3 = new JLabel("\u03B1: gradient prefactor");
+				final JLabel lblNewLabel_3 = new JLabel("\u03B1: gradient prefactor");
 				lblNewLabel_3.setFont(SMALL_LABEL_FONT);
 				lblNewLabel_3.setBounds(10, 165, 325, 14);
 				panelParams2.add(lblNewLabel_3);
@@ -489,7 +509,7 @@ public class CwntGui extends SegmenterConfigurationPanel {
 				alphaText.addKeyListener(step4KeyListener);
 			}
 			{
-				JLabel betaLabel = new JLabel("\u03B2: positive laplacian magnitude prefactor");
+				final JLabel betaLabel = new JLabel("\u03B2: positive laplacian magnitude prefactor");
 				betaLabel.setFont(SMALL_LABEL_FONT);
 				betaLabel.setBounds(10, 224, 325, 14);
 				panelParams2.add(betaLabel);
@@ -509,7 +529,7 @@ public class CwntGui extends SegmenterConfigurationPanel {
 				betaText.addKeyListener(step4KeyListener);
 			}
 			{
-				JLabel epsilonLabel = new JLabel("\u03B5: negative hessian magnitude");
+				final JLabel epsilonLabel = new JLabel("\u03B5: negative hessian magnitude");
 				epsilonLabel.setFont(SMALL_LABEL_FONT);
 				epsilonLabel.setBounds(10, 283, 325, 14);
 				panelParams2.add(epsilonLabel);
@@ -529,7 +549,7 @@ public class CwntGui extends SegmenterConfigurationPanel {
 				epsilonText.addKeyListener(step4KeyListener);
 			}
 			{
-				JLabel deltaLabel = new JLabel("\u03B4: derivatives sum scale");
+				final JLabel deltaLabel = new JLabel("\u03B4: derivatives sum scale");
 				deltaLabel.setFont(SMALL_LABEL_FONT);
 				deltaLabel.setBounds(20, 342, 325, 14);
 				panelParams2.add(deltaLabel);
@@ -549,7 +569,7 @@ public class CwntGui extends SegmenterConfigurationPanel {
 				deltaText.addKeyListener(step4KeyListener);
 			}
 
-			JLabel lblEquation = new JLabel("<html>M = \u00BD ( 1 + <i>tanh</i> ( \u03B3 - ( \u03B1 G + \u03B2 L + \u03B5 H ) / \u03B4 ) )</html>");
+			final JLabel lblEquation = new JLabel("<html>M = \u00BD ( 1 + <i>tanh</i> ( \u03B3 - ( \u03B1 G + \u03B2 L + \u03B5 H ) / \u03B4 ) )</html>");
 			lblEquation.setHorizontalAlignment(SwingConstants.CENTER);
 			lblEquation.setFont(MEDIUM_LABEL_FONT);
 			lblEquation.setBounds(10, 413, 325, 35);
@@ -589,39 +609,51 @@ public class CwntGui extends SegmenterConfigurationPanel {
 //		}
 	}
 	
-	public void setModelAndView(TrackMateModel model, TrackMateModelView view) {
+	public void setModelAndView( final Model model, final TrackMateModelView view )
+	{
 		
 		if (tabbedPane.getTabCount() > 4) {
 			tabbedPane.removeTabAt(4);
 		}
-		DisplayerPanel displayerPanel = new DisplayerPanel(model);
-		displayerPanel.jButtonShowTrackScheme.setVisible(false);
-		displayerPanel.register(view);
+		final ConfigureViewsPanel displayerPanel = new ConfigureViewsPanel( model );
+		displayerPanel.getTrackSchemeButton().setVisible( false );
+		displayerPanel.addDisplaySettingsChangeListener( new DisplaySettingsListener()
+		{
+			@Override
+			public void displaySettingsChanged( final DisplaySettingsEvent event )
+			{
+				view.setDisplaySettings( event.getKey(), event.getNewValue() );
+			}
+		} );
+
 		tabbedPane.addTab("Display settings", null, displayerPanel, null);
 
 		if (tabbedPane.getTabCount() > 5) {
 			tabbedPane.removeTabAt(5);
 		}
-		ActionChooserPanel actionPanel = new ActionChooserPanel(model, null, null);
-		tabbedPane.addTab("Actions", null, actionPanel, null);
+		final Settings settings = new Settings();
+//		settings.setFrom( imp );
+		final TrackMate trackmate = new TrackMate( model, settings );
+		final ActionChooserPanel actionPanel = new ActionChooserPanel( new ActionProvider(), trackmate, null );
+		tabbedPane.addTab( "Actions", null, actionPanel.getPanel(), null );
 		
 	}
 
 	private void link(final DoubleJSlider slider, final JTextField text) {
 		slider.addChangeListener(new ChangeListener(){
 			@Override
-			public void stateChanged(ChangeEvent e) {
+			public void stateChanged(final ChangeEvent e) {
 				text.setText(df2d.format(slider.getScaledValue()));
 			}
 		});
 		text.addKeyListener(new KeyAdapter(){
 			@Override
-			public void keyReleased(KeyEvent ke) {
-				String typed = text.getText();
+			public void keyReleased(final KeyEvent ke) {
+				final String typed = text.getText();
 				if(!typed.matches("\\d+(\\.\\d+)?")) {
 					return;
 				}
-				double value = Double.parseDouble(typed)*slider.scale;
+				final double value = Double.parseDouble(typed)*slider.scale;
 				slider.setValue((int)value);
 			}
 		});

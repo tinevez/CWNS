@@ -279,6 +279,19 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 		return maskingParams;
 	}
 
+	public static void putMaskingParameters( final double[] params, final Map< String, Object > settings )
+	{
+		settings.put( SIGMA_F_PARAMETER, params[ 0 ] );
+		settings.put( N_AD_PARAMETER, params[ 1 ] );
+		settings.put( KAPPA_PARAMETER, params[ 2 ] );
+		settings.put( SIGMA_G_PARAMETER, params[ 3 ] );
+		settings.put( GAMMA_PARAMETER, params[ 4 ] );
+		settings.put( ALPHA_PARAMETER, params[ 5 ] );
+		settings.put( BETA_PARAMETER, params[ 6 ] );
+		settings.put( EPSILON_PARAMETER, params[ 7 ] );
+		settings.put( DELTA_PARAMETER, params[ 8 ] );
+	}
+
 	/*
 	 * PARAMETER NAMES
 	 */
