@@ -11,17 +11,17 @@ import net.imglib2.algorithm.OutputAlgorithm;
 import net.imglib2.algorithm.stats.ComputeMinMax;
 import net.imglib2.algorithm.stats.Histogram;
 import net.imglib2.algorithm.stats.HistogramBinMapper;
-import net.imglib2.algorithm.stats.IntBinMapper;
+import net.imglib2.algorithm.stats.RealBinMapper;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.logic.BitType;
-import net.imglib2.type.numeric.IntegerType;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
 
 @SuppressWarnings( "deprecation" )
-public class OtsuThresholder2D< T extends IntegerType< T >> extends MultiThreadedBenchmarkAlgorithm implements OutputAlgorithm< Img< BitType >>
+public class OtsuThresholder2D< T extends RealType< T >> extends MultiThreadedBenchmarkAlgorithm implements OutputAlgorithm< Img< BitType >>
 {
 
 	private static final String BASE_ERROR_MESSAGE = "[OtsuThresholder2D] ";
@@ -83,7 +83,7 @@ public class OtsuThresholder2D< T extends IntegerType< T >> extends MultiThreade
 
 						// Compute histogram.
 						final RealCursor< T > c = slice.cursor();
-						final HistogramBinMapper< T > mapper = new IntBinMapper< T >( min, max );
+						final HistogramBinMapper< T > mapper = new RealBinMapper< T >( min, max, 500 );
 						final Histogram< T > histo = new Histogram< T >( mapper, c );
 
 						if ( !histo.checkInput() || !histo.process() )
@@ -97,8 +97,9 @@ public class OtsuThresholder2D< T extends IntegerType< T >> extends MultiThreade
 						final int[] histogram = histo.getHistogram();
 
 						// Get Otsu threshold
-						int threshold = otsuThresholdIndex( histogram, slice.size() );
-						threshold = ( int ) ( threshold * levelFactor );
+						final int thresholdIndex = otsuThresholdIndex( histogram, slice.size() );
+						final T threshold = histo.getBinCenter( thresholdIndex );
+						threshold.mul( levelFactor );
 
 						// Iterate over target image in the plane
 						final Cursor< T > cursor = slice.cursor();
@@ -108,7 +109,7 @@ public class OtsuThresholder2D< T extends IntegerType< T >> extends MultiThreade
 						{
 							cursor.fwd();
 							ra.setPosition( cursor );
-							ra.get().set( cursor.get().getInteger() > threshold );
+							ra.get().set( cursor.get().compareTo( threshold ) > 0 );
 						}
 					}
 
