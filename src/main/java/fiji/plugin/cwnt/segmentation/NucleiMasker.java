@@ -8,11 +8,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import mpicbg.imglib.algorithm.gauss.GaussianFilter2D;
 import mpicbg.imglib.algorithm.gauss.GaussianGradient2D;
 import net.imglib2.Cursor;
-import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
 import net.imglib2.algorithm.OutputAlgorithm;
 import net.imglib2.algorithm.pde.PeronaMalikAnisotropicDiffusion;
+import net.imglib2.algorithm.stats.ComputeMinMax;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.basictypeaccess.array.FloatArray;
@@ -75,8 +75,6 @@ public class NucleiMasker< T extends RealType< T > & NativeType< T >> extends Mu
 
 	// Step 2
 	private ArrayImg< FloatType, FloatArray > anDiffImage;
-
-	private ArrayImg< FloatType, FloatArray > scaled;
 
 	private int nIterAnDiff = ( int ) DEFAULT_MASKING_PARAMETERS[ 1 ];
 
@@ -194,6 +192,12 @@ public class NucleiMasker< T extends RealType< T > & NativeType< T >> extends Mu
 		delta = params[ 8 ];
 	}
 
+	/**
+	 * Gaussian filtering of the source image. After this step, the filtered
+	 * image is accessible via {@link #getGaussianFilteredImage()}.
+	 * 
+	 * @return <code>true</code> is processing happened properly.
+	 */
 	public boolean execStep1()
 	{
 		/*
@@ -218,6 +222,12 @@ public class NucleiMasker< T extends RealType< T > & NativeType< T >> extends Mu
 		return check;
 	}
 
+	/**
+	 * Anisotropic diffusion of the filtered image followed by intensity
+	 * scaling.
+	 * 
+	 * @return <code>true</code> is processing happened properly.
+	 */
 	public boolean execStep2()
 	{
 		/*
@@ -228,34 +238,15 @@ public class NucleiMasker< T extends RealType< T > & NativeType< T >> extends Mu
 		{
 			System.out.print( String.format( BASE_ERROR_MESSAGE + "Anisotropic diffusion with n = %d and κ = %.1f ... ", nIterAnDiff, kappa ) );
 		}
-		long top = System.currentTimeMillis();
-		boolean check = execAnisotropicDiffusion();
+		final long top = System.currentTimeMillis();
+		final boolean check = execAnisotropicDiffusion();
 		if ( !check ) { return false; }
-		long dt = ( System.currentTimeMillis() - top );
+		final long dt = ( System.currentTimeMillis() - top );
 		processingTime += dt;
 		if ( DEBUG )
 		{
 			System.out.println( "dt = " + dt / 1e3 + " s." );
 		}
-
-		/*
-		 * Step 2b: Intensity scaling Scale intensities in each plane to the
-		 * range 0 - 1
-		 */
-		if ( DEBUG )
-		{
-			System.out.print( BASE_ERROR_MESSAGE + "Intensity scaling... " );
-		}
-		top = System.currentTimeMillis();
-		check = execIntensityScaling();
-		if ( !check ) { return false; }
-		dt = ( System.currentTimeMillis() - top );
-		processingTime += dt;
-		if ( DEBUG )
-		{
-			System.out.println( "dt = " + dt / 1e3 + " s." );
-		}
-
 		return check;
 	}
 
@@ -541,6 +532,7 @@ public class NucleiMasker< T extends RealType< T > & NativeType< T >> extends Mu
 		}
 
 		SimpleMultiThreading.startAndJoin( threads );
+		normalize( H );
 		return true;
 	}
 
@@ -619,12 +611,13 @@ public class NucleiMasker< T extends RealType< T > & NativeType< T >> extends Mu
 		}
 
 		SimpleMultiThreading.startAndJoin( threads );
+		normalize( L );
 		return true;
 	}
 
 	private boolean execComputeGradient()
 	{
-		final GaussianGradient2D< FloatType > grad = new GaussianGradient2D< FloatType >( scaled, gaussGradSigma );
+		final GaussianGradient2D< FloatType > grad = new GaussianGradient2D< FloatType >( anDiffImage, gaussGradSigma );
 		grad.setNumThreads( numThreads );
 		final boolean check = grad.checkInput() && grad.process();
 		if ( check )
@@ -633,6 +626,7 @@ public class NucleiMasker< T extends RealType< T > & NativeType< T >> extends Mu
 			Gx = gc.get( 0 );
 			Gy = gc.get( 1 );
 			Gnorm = grad.getResult();
+			normalize( Gnorm );
 			return true;
 		}
 		else
@@ -641,95 +635,6 @@ public class NucleiMasker< T extends RealType< T > & NativeType< T >> extends Mu
 			return false;
 		}
 
-	}
-
-	@SuppressWarnings( "unchecked" )
-	private boolean execIntensityScaling()
-	{
-		scaled = ( ArrayImg< FloatType, FloatArray > ) imgFactory.create( filtered, new FloatType() );
-
-		final long width = scaled.dimension( 0 );
-		final long height = scaled.dimension( 1 );
-		final long nslices = scaled.dimension( 2 );
-
-		final AtomicInteger aj = new AtomicInteger();
-
-		final Thread[] threads = SimpleMultiThreading.newThreads( numThreads );
-
-		for ( int i = 0; i < threads.length; i++ )
-		{
-			threads[ i ] = new Thread( BASE_ERROR_MESSAGE + "Intensity scaling thread " + i )
-			{
-
-				@Override
-				public void run()
-				{
-
-					final RandomAccess< FloatType > cs = anDiffImage.randomAccess( anDiffImage );
-					final RandomAccess< FloatType > ct = scaled.randomAccess( scaled );
-
-					float val;
-					for ( int z = aj.getAndIncrement(); z < nslices; z = aj.getAndIncrement() )
-					{
-
-						if ( nslices > 1 )
-						{ // If we get a 2D image
-							cs.setPosition( z, 2 );
-							ct.setPosition( z, 2 );
-						}
-
-						// Find min & max
-						final double val_min = anDiffImage.firstElement().getMaxValue();
-						final double val_max = anDiffImage.firstElement().getMinValue();
-						final FloatType min = anDiffImage.firstElement().createVariable();
-						final FloatType max = anDiffImage.firstElement().createVariable();
-						min.setReal( val_min );
-						max.setReal( val_max );
-
-						for ( int y = 0; y < height; y++ )
-						{
-							cs.setPosition( y, 1 );
-
-							for ( int x = 0; x < width; x++ )
-							{
-								cs.setPosition( x, 0 );
-
-								if ( cs.get().compareTo( min ) < 0 )
-								{
-									min.set( cs.get() );
-								}
-								if ( cs.get().compareTo( max ) > 0 )
-								{
-									max.set( cs.get() );
-								}
-
-							}
-						}
-
-						// Scale
-						for ( int y = 0; y < height; y++ )
-						{
-							cs.setPosition( y, 1 );
-							ct.setPosition( y, 1 );
-
-							for ( int x = 0; x < width; x++ )
-							{
-								cs.setPosition( x, 0 );
-								ct.setPosition( x, 0 );
-
-								val = ( cs.get().getRealFloat() - min.getRealFloat() ) / ( max.getRealFloat() - min.getRealFloat() );
-								ct.get().set( val );
-
-							}
-						}
-					}
-				}
-
-			};
-		}
-
-		SimpleMultiThreading.startAndJoin( threads );
-		return true;
 	}
 
 	@SuppressWarnings( "unchecked" )
@@ -757,11 +662,11 @@ public class NucleiMasker< T extends RealType< T > & NativeType< T >> extends Mu
 						if ( anDiffImage.numDimensions() > 2 )
 						{
 							final IntervalView< FloatType > slice = Views.hyperSlice( anDiffImage, 2, z );
-							andiff = new PeronaMalikAnisotropicDiffusion< FloatType >( slice, new ArrayImgFactory< FloatType >(), 0.1, kappa );
+							andiff = new PeronaMalikAnisotropicDiffusion< FloatType >( slice, new ArrayImgFactory< FloatType >(), 0.1429, kappa );
 						}
 						else
 						{
-							andiff = new PeronaMalikAnisotropicDiffusion< FloatType >( anDiffImage, new ArrayImgFactory< FloatType >(), 0.1, kappa );
+							andiff = new PeronaMalikAnisotropicDiffusion< FloatType >( anDiffImage, new ArrayImgFactory< FloatType >(), 0.1429, kappa );
 						}
 						andiff.setNumThreads( 1 );
 						boolean check = andiff.checkInput();
@@ -796,4 +701,28 @@ public class NucleiMasker< T extends RealType< T > & NativeType< T >> extends Mu
 		return check;
 	}
 
+	/**
+	 * Normalize the image intensity (in place) so that it ranges between 0 and
+	 * 1.
+	 * 
+	 * @param img
+	 *            the image to modify.
+	 */
+	private static final void normalize( final ArrayImg< FloatType, FloatArray > img )
+	{
+		final FloatType min = new FloatType();
+		final FloatType max = new FloatType();
+		ComputeMinMax.computeMinMax( img, min, max );
+		final float minf = min.get();
+		final float maxf = max.get();
+		
+		final Cursor< FloatType > cursor = img.cursor( img );
+		while ( cursor.hasNext() )
+		{
+			cursor.fwd();
+			final float val = cursor.get().get();
+			final float scaled = ( val - minf ) / ( maxf - minf );
+			cursor.get().set( scaled );
+		}
+	}
 }

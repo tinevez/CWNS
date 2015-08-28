@@ -6,6 +6,7 @@ import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.imglib2.Cursor;
+import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
 import net.imglib2.algorithm.OutputAlgorithm;
@@ -13,7 +14,6 @@ import net.imglib2.algorithm.gauss3.Gauss3;
 import net.imglib2.algorithm.gradient.PartialDerivative;
 import net.imglib2.exception.IncompatibleTypeException;
 import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.basictypeaccess.array.FloatArray;
@@ -21,11 +21,9 @@ import net.imglib2.multithreading.Chunk;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.util.Util;
 import net.imglib2.view.ExtendedRandomAccessibleInterval;
 import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
-import fiji.plugin.trackmate.detection.DetectionUtils;
 
 /**
  * Takes the 2D gaussian derivatives.
@@ -84,23 +82,22 @@ public class GaussianGradient2D< T extends RealType< T >> extends MultiThreadedB
 	{
 		final long start = System.currentTimeMillis();
 
-		// Convert to float; needed to handle negative value properly
-		final Img< FloatType > floatImage;
-		if ( source.firstElement().getClass().equals( FloatType.class ) )
+		final ArrayImgFactory< FloatType > factory = new ArrayImgFactory< FloatType >();
+		final ArrayImg< FloatType, FloatArray > floatImage = ( ArrayImg< FloatType, FloatArray > ) factory.create( source, new FloatType() );
+
+		// Copy to float.
+		final Cursor< FloatType > cursor = floatImage.cursor( source );
+		final RandomAccess< T > ra = source.randomAccess( source );
+		while ( cursor.hasNext() )
 		{
-			final Object tmp = source;
-			floatImage = ( Img< FloatType > ) tmp;
-		}
-		else
-		{
-			final ImgFactory< FloatType > factory = Util.getArrayOrCellImgFactory( source, new FloatType() );
-			floatImage = DetectionUtils.copyToFloatImg( source, source, factory );
+			cursor.fwd();
+			ra.setPosition( cursor );
+			cursor.get().set( ra.get().getRealFloat() );
 		}
 
 		// Create result holders.
-		final ArrayImgFactory< FloatType > factory = new ArrayImgFactory< FloatType >();
-		Dx = ( ArrayImg< FloatType, FloatArray > ) factory.create( floatImage, new FloatType() );
-		Dy = ( ArrayImg< FloatType, FloatArray > ) factory.create( floatImage, new FloatType() );
+		Dx = ( ArrayImg< FloatType, FloatArray > ) factory.create( source, new FloatType() );
+		Dy = ( ArrayImg< FloatType, FloatArray > ) factory.create( source, new FloatType() );
 
 		final int ndims = floatImage.numDimensions();
 		if ( ndims == 3 )
@@ -146,8 +143,8 @@ public class GaussianGradient2D< T extends RealType< T >> extends MultiThreadedB
 		}
 
 		// Derivatives
-		PartialDerivative.gradientCentralDifference2( extended, dx, 0 );
-		PartialDerivative.gradientCentralDifference2( extended, dy, 1 );
+		PartialDerivative.gradientCentralDifference( extended, dx, 0 );
+		PartialDerivative.gradientCentralDifference( extended, dy, 1 );
 
 		return true;
 	}
