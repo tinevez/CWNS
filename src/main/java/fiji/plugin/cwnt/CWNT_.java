@@ -51,7 +51,8 @@ import javax.swing.JFrame;
 
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.img.Img;
-import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.img.array.ArrayImg;
+import net.imglib2.img.basictypeaccess.array.FloatArray;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.real.FloatType;
 
@@ -555,30 +556,21 @@ public class CWNT_ implements PlugIn
 		gui.setDurationEstimate( tmin );
 
 		// Prepare results holder;
-		final Img< FloatType > F = algo.getGaussianFilteredImage();
-		final Img< FloatType > AD = algo.getAnisotropicDiffusionImage();
-		final Img< FloatType > G = algo.getGradientNorm();
-		final Img< FloatType > L = algo.getLaplacianMagnitude();
-		final Img< FloatType > H = algo.getHessianDeterminant();
-		final Img< FloatType > M = algo.getMask();
-		final Img< FloatType > R = algo.getResult();
+		final ArrayImg< FloatType, FloatArray > F = algo.getGaussianFilteredImage();
+		final ArrayImg< FloatType, FloatArray > AD = algo.getAnisotropicDiffusionImage();
+		final ArrayImg< FloatType, FloatArray > G = algo.getGradientNorm();
+		final ArrayImg< FloatType, FloatArray > L = algo.getLaplacianMagnitude();
+		final ArrayImg< FloatType, FloatArray > H = algo.getHessianDeterminant();
+		final ArrayImg< FloatType, FloatArray > M = algo.getMask();
+		final ArrayImg< FloatType, FloatArray > R = algo.getResult();
 
 		final int width = ( int ) F.dimension( 0 );
 		final int height = ( int ) F.dimension( 1 );
 
-		final ImageStack floatStack = new ImageStack( width, height ); // The
-																		// stack
-																		// of
-																		// ips
-																		// that
-																		// scales
-																		// roughly
-																		// from
-																		// 0 to
-																		// 1
+		final ImageStack floatStack = new ImageStack( width, height );
 		floatStack.addSlice( "Gradient norm", toFloatProcessor( G ) );
-		floatStack.addSlice( "Laplacian mangitude", toFloatProcessor( L ) );
-		floatStack.addSlice( "Hessian determintant", toFloatProcessor( H ) );
+		floatStack.addSlice( "Laplacian magnitude", toFloatProcessor( L ) );
+		floatStack.addSlice( "Hessian determinant", toFloatProcessor( H ) );
 		floatStack.addSlice( "Mask", toFloatProcessor( M ) );
 		if ( comp2 == null )
 		{
@@ -591,14 +583,7 @@ public class CWNT_ implements PlugIn
 		comp2.show();
 		comp2.getProcessor().resetMinAndMax();
 
-		final ImageStack tStack = new ImageStack( width, height ); // The stack
-																	// of ips
-																	// that
-																	// scales
-																	// roughly
-																	// like
-																	// source
-																	// image
+		final ImageStack tStack = new ImageStack( width, height );
 		tStack.addSlice( "Gaussian filtered", toFloatProcessor( F ) );
 		tStack.addSlice( "Anisotropic diffusion", toFloatProcessor( AD ) );
 		tStack.addSlice( "Masked image", toFloatProcessor( R ) );
@@ -616,13 +601,12 @@ public class CWNT_ implements PlugIn
 		positionComponentRelativeTo( comp2.getWindow(), comp1.getWindow(), 2 );
 	}
 
-	@SuppressWarnings( { "rawtypes", "unchecked" } )
-	private FloatProcessor toFloatProcessor( final Img img )
+	private static final FloatProcessor toFloatProcessor( final ArrayImg< FloatType, FloatArray > img )
 	{
-		final ImagePlus wrapFloat = ImageJFunctions.wrapFloat( img, "Wrapped" );
-		final FloatProcessor fip = ( FloatProcessor ) wrapFloat.getProcessor();
-		fip.resetMinAndMax();
-		return fip;
+		final FloatArray data = img.update( null );
+		final float[] array = data.getCurrentStorageArray();
+		final FloatProcessor fp = new FloatProcessor( ( int ) img.dimension( 0 ), ( int ) img.dimension( 1 ), array );
+		return fp;
 	}
 
 	private void paramStep1Changed()

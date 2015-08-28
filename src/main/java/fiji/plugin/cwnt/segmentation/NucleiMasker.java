@@ -13,22 +13,22 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
 import net.imglib2.algorithm.OutputAlgorithm;
 import net.imglib2.algorithm.pde.PeronaMalikAnisotropicDiffusion;
-import net.imglib2.exception.IncompatibleTypeException;
-import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
+import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.basictypeaccess.array.FloatArray;
 import net.imglib2.multithreading.Chunk;
 import net.imglib2.multithreading.SimpleMultiThreading;
+import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
 
 @SuppressWarnings( "deprecation" )
-public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchmarkAlgorithm implements OutputAlgorithm< Img< FloatType >>
+public class NucleiMasker< T extends RealType< T > & NativeType< T >> extends MultiThreadedBenchmarkAlgorithm implements OutputAlgorithm< ArrayImg< FloatType, FloatArray >>
 {
 
-	private static final boolean DEBUG = false;
+	private static final boolean DEBUG = true;
 
 	/**
 	 * A set of default parameters suitable for masking, as determined by Bhavna
@@ -59,21 +59,24 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 
 	private static final String BASE_ERROR_MESSAGE = "[NucleiMasker] ";
 
+	/** The factory to create output images. */
+	private final ArrayImgFactory< FloatType > imgFactory = new ArrayImgFactory< FloatType >();
+
 	/** The source image (left unchanged). */
 	private final RandomAccessibleInterval< T > image;
 
 	/** The target image for the pre-processing steps. */
-	private Img< FloatType > target;
+	private ArrayImg< FloatType, FloatArray > target;
 
 	// Step 1
-	private Img< FloatType > filtered;
+	private ArrayImg< FloatType, FloatArray > filtered;
 
 	private double gaussFilterSigma = DEFAULT_MASKING_PARAMETERS[ 0 ];
 
 	// Step 2
-	private Img< FloatType > anDiffImage;
+	private ArrayImg< FloatType, FloatArray > anDiffImage;
 
-	private Img< FloatType > scaled;
+	private ArrayImg< FloatType, FloatArray > scaled;
 
 	private int nIterAnDiff = ( int ) DEFAULT_MASKING_PARAMETERS[ 1 ];
 
@@ -82,26 +85,26 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 	// Step 3
 	private double gaussGradSigma = DEFAULT_MASKING_PARAMETERS[ 3 ];
 
-	private Img< FloatType > Gx;
+	private ArrayImg< FloatType, FloatArray > Gx;
 
-	private Img< FloatType > Gy;
+	private ArrayImg< FloatType, FloatArray > Gy;
 
-	private Img< FloatType > Gnorm;
+	private ArrayImg< FloatType, FloatArray > Gnorm;
 
-	private Img< FloatType > Gxx;
+	private ArrayImg< FloatType, FloatArray > Gxx;
 
-	private Img< FloatType > Gxy;
+	private ArrayImg< FloatType, FloatArray > Gxy;
 
-	private Img< FloatType > Gyx;
+	private ArrayImg< FloatType, FloatArray > Gyx;
 
-	private Img< FloatType > Gyy;
+	private ArrayImg< FloatType, FloatArray > Gyy;
 
-	private Img< FloatType > H;
+	private ArrayImg< FloatType, FloatArray > H;
 
-	private Img< FloatType > L;
+	private ArrayImg< FloatType, FloatArray > L;
 
 	// Step 4
-	private Img< FloatType > M;
+	private ArrayImg< FloatType, FloatArray > M;
 
 	private double gamma = DEFAULT_MASKING_PARAMETERS[ 4 ];
 
@@ -127,38 +130,38 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 	 * METHODS
 	 */
 
-	public Img< FloatType > getGaussianFilteredImage()
+	public ArrayImg< FloatType, FloatArray > getGaussianFilteredImage()
 	{
 		return filtered;
 	}
 
-	public Img< FloatType > getAnisotropicDiffusionImage()
+	public ArrayImg< FloatType, FloatArray > getAnisotropicDiffusionImage()
 	{
 		return anDiffImage;
 	}
 
-	public Img< FloatType > getGradientNorm()
+	public ArrayImg< FloatType, FloatArray > getGradientNorm()
 	{
 		return Gnorm;
 	}
 
-	public Img< FloatType > getLaplacianMagnitude()
+	public ArrayImg< FloatType, FloatArray > getLaplacianMagnitude()
 	{
 		return L;
 	}
 
-	public Img< FloatType > getHessianDeterminant()
+	public ArrayImg< FloatType, FloatArray > getHessianDeterminant()
 	{
 		return H;
 	}
 
-	public Img< FloatType > getMask()
+	public ArrayImg< FloatType, FloatArray > getMask()
 	{
 		return M;
 	}
 
 	@Override
-	public Img< FloatType > getResult()
+	public ArrayImg< FloatType, FloatArray > getResult()
 	{
 		return target;
 	}
@@ -388,9 +391,10 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 	 * PRIVATE METHODS
 	 */
 
+	@SuppressWarnings( "unchecked" )
 	private boolean execMasking()
 	{
-		target = filtered.factory().create( filtered, new FloatType() );
+		target = ( ArrayImg< FloatType, FloatArray > ) imgFactory.create( filtered, new FloatType() );
 		final Vector< Chunk > chunks = SimpleMultiThreading.divideIntoChunks( target.size(), numThreads );
 		final AtomicInteger ai = new AtomicInteger();
 
@@ -429,10 +433,11 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 		return true;
 	}
 
+	@SuppressWarnings( "unchecked" )
 	private boolean execCreateMask()
 	{
 
-		M = Gnorm.factory().create( Gnorm, new FloatType() );
+		M = ( ArrayImg< FloatType, FloatArray > ) imgFactory.create( Gnorm, new FloatType() );
 		final Vector< Chunk > chunks = SimpleMultiThreading.divideIntoChunks( M.size(), numThreads );
 		final AtomicInteger ai = new AtomicInteger();
 
@@ -485,11 +490,11 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 		return true;
 	}
 
+	@SuppressWarnings( "unchecked" )
 	private boolean execComputeHessian()
 	{
-
 		// "Negative part of Hessian"
-		H = Gxx.factory().create( Gxx, new FloatType() );
+		H = ( ArrayImg< FloatType, FloatArray > ) imgFactory.create( Gnorm, new FloatType() );
 		final Vector< Chunk > chunks = SimpleMultiThreading.divideIntoChunks( H.size(), numThreads );
 		final AtomicInteger ai = new AtomicInteger();
 
@@ -539,6 +544,7 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 		return true;
 	}
 
+	@SuppressWarnings( "unchecked" )
 	private boolean execComputeLaplacian()
 	{
 
@@ -547,7 +553,7 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 		boolean check = gradX.checkInput() && gradX.process();
 		if ( check )
 		{
-			final List< Img< FloatType >> gcX = gradX.getGradientComponents();
+			final List< ArrayImg< FloatType, FloatArray >> gcX = gradX.getGradientComponents();
 			Gxx = gcX.get( 0 );
 			Gxy = gcX.get( 1 );
 		}
@@ -562,7 +568,7 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 		check = gradY.checkInput() && gradY.process();
 		if ( check )
 		{
-			final List< Img< FloatType >> gcY = gradY.getGradientComponents();
+			final List< ArrayImg< FloatType, FloatArray >> gcY = gradY.getGradientComponents();
 			Gyx = gcY.get( 0 );
 			Gyy = gcY.get( 1 );
 		}
@@ -573,7 +579,7 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 		}
 
 		// Enucluated laplacian magnitude // "Laplacian positive magnitude"
-		L = Gxx.factory().create( Gxx, new FloatType() );
+		L = ( ArrayImg< FloatType, FloatArray > ) imgFactory.create( Gxx, new FloatType() );
 		final Vector< Chunk > chunks = SimpleMultiThreading.divideIntoChunks( L.size(), numThreads );
 		final AtomicInteger ai = new AtomicInteger();
 
@@ -623,7 +629,7 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 		final boolean check = grad.checkInput() && grad.process();
 		if ( check )
 		{
-			final List< Img< FloatType >> gc = grad.getGradientComponents();
+			final List< ArrayImg< FloatType, FloatArray >> gc = grad.getGradientComponents();
 			Gx = gc.get( 0 );
 			Gy = gc.get( 1 );
 			Gnorm = grad.getResult();
@@ -637,19 +643,10 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 
 	}
 
+	@SuppressWarnings( "unchecked" )
 	private boolean execIntensityScaling()
 	{
-
-		ImgFactory< FloatType > factory = null;
-		try
-		{
-			factory = anDiffImage.factory().imgFactory( new FloatType() );
-		}
-		catch ( final IncompatibleTypeException e )
-		{
-			e.printStackTrace();
-		}
-		scaled = factory.create( filtered, new FloatType() );
+		scaled = ( ArrayImg< FloatType, FloatArray > ) imgFactory.create( filtered, new FloatType() );
 
 		final long width = scaled.dimension( 0 );
 		final long height = scaled.dimension( 1 );
@@ -735,9 +732,10 @@ public class NucleiMasker< T extends RealType< T >> extends MultiThreadedBenchma
 		return true;
 	}
 
+	@SuppressWarnings( "unchecked" )
 	private boolean execAnisotropicDiffusion()
 	{
-		anDiffImage = filtered.copy();
+		anDiffImage = ( ArrayImg< FloatType, FloatArray > ) filtered.copy();
 
 		final AtomicInteger aj = new AtomicInteger( 0 );
 		final AtomicBoolean ok = new AtomicBoolean( true );

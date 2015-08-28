@@ -14,6 +14,9 @@ import net.imglib2.algorithm.gradient.PartialDerivative;
 import net.imglib2.exception.IncompatibleTypeException;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
+import net.imglib2.img.array.ArrayImg;
+import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.basictypeaccess.array.FloatArray;
 import net.imglib2.multithreading.Chunk;
 import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.numeric.RealType;
@@ -43,11 +46,11 @@ public class GaussianGradient2D< T extends RealType< T >> extends MultiThreadedB
 
 	private final double sigma;
 
-	private Img< FloatType > Dx;
+	private ArrayImg< FloatType, FloatArray > Dx;
 
-	private Img< FloatType > Dy;
+	private ArrayImg< FloatType, FloatArray > Dy;
 
-	private final List< Img< FloatType >> components = new ArrayList< Img< FloatType >>( 2 );
+	private final List< ArrayImg< FloatType, FloatArray >> components = new ArrayList< ArrayImg< FloatType, FloatArray >>( 2 );
 
 	/*
 	 * CONSTRUCTOR
@@ -95,9 +98,9 @@ public class GaussianGradient2D< T extends RealType< T >> extends MultiThreadedB
 		}
 
 		// Create result holders.
-		final ImgFactory< FloatType > factory = Util.getArrayOrCellImgFactory( floatImage, new FloatType() );
-		Dx = factory.create( floatImage, new FloatType() );
-		Dy = factory.create( floatImage, new FloatType() );
+		final ArrayImgFactory< FloatType > factory = new ArrayImgFactory< FloatType >();
+		Dx = ( ArrayImg< FloatType, FloatArray > ) factory.create( floatImage, new FloatType() );
+		Dy = ( ArrayImg< FloatType, FloatArray > ) factory.create( floatImage, new FloatType() );
 
 		final int ndims = floatImage.numDimensions();
 		if ( ndims == 3 )
@@ -149,7 +152,7 @@ public class GaussianGradient2D< T extends RealType< T >> extends MultiThreadedB
 		return true;
 	}
 
-	public List< Img< FloatType >> getGradientComponents()
+	public List< ArrayImg< FloatType, FloatArray >> getGradientComponents()
 	{
 		return components;
 	}
@@ -158,9 +161,11 @@ public class GaussianGradient2D< T extends RealType< T >> extends MultiThreadedB
 	 * Returns the gradient norm.
 	 */
 	@Override
-	public Img< FloatType > getResult()
+	public ArrayImg< FloatType, FloatArray > getResult()
 	{
-		final Img< FloatType > norm = Dx.factory().create( Dx, new FloatType() );
+		final ArrayImgFactory< FloatType > factory = new ArrayImgFactory< FloatType >();
+		@SuppressWarnings( "unchecked" )
+		final ArrayImg< FloatType, FloatArray > norm = ( ArrayImg< FloatType, FloatArray > ) factory.create( Dx, new FloatType() );
 
 		final Vector< Chunk > chunks = SimpleMultiThreading.divideIntoChunks( norm.size(), numThreads );
 		final AtomicInteger ai = new AtomicInteger();

@@ -1,19 +1,21 @@
 package mpicbg.imglib.algorithm.gauss;
 
+import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
 import net.imglib2.algorithm.OutputAlgorithm;
 import net.imglib2.algorithm.gauss3.Gauss3;
 import net.imglib2.exception.IncompatibleTypeException;
 import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
+import net.imglib2.img.array.ArrayImg;
+import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.array.ArrayLocalizingCursor;
+import net.imglib2.img.basictypeaccess.array.FloatArray;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.util.Util;
 import net.imglib2.view.ExtendedRandomAccessibleInterval;
 import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
-import fiji.plugin.trackmate.detection.DetectionUtils;
 
 public class GaussianFilter2D< T extends RealType< T >> extends MultiThreadedBenchmarkAlgorithm implements OutputAlgorithm< Img< FloatType > >
 {
@@ -23,7 +25,7 @@ public class GaussianFilter2D< T extends RealType< T >> extends MultiThreadedBen
 
 	private final double[] sigmas;
 
-	private Img< FloatType > target;
+	private ArrayImg< FloatType, FloatArray > target;
 
 	public GaussianFilter2D( final RandomAccessibleInterval< T > source, final double[] sigmas )
 	{
@@ -47,13 +49,23 @@ public class GaussianFilter2D< T extends RealType< T >> extends MultiThreadedBen
 		return true;
 	}
 
+	@SuppressWarnings( "unchecked" )
 	@Override
 	public boolean process()
 	{
 		final long start = System.currentTimeMillis();
 
-		final ImgFactory< FloatType > factory = Util.getArrayOrCellImgFactory( source, new FloatType() );
-		target = DetectionUtils.copyToFloatImg( source, source, factory );
+		// Copy to float
+		final ArrayImgFactory< FloatType > factory = new ArrayImgFactory< FloatType >();
+		target = ( ArrayImg< FloatType, FloatArray > ) factory.create( source, new FloatType() );
+		final ArrayLocalizingCursor< FloatType > cursor = target.localizingCursor();
+		final RandomAccess< T > ra = source.randomAccess( target );
+		while ( cursor.hasNext() )
+		{
+			cursor.fwd();
+			ra.setPosition( cursor );
+			cursor.get().set( ra.get().getRealFloat() );
+		}
 
 		final int ndims = target.numDimensions();
 		if ( ndims == 3 )
@@ -95,7 +107,7 @@ public class GaussianFilter2D< T extends RealType< T >> extends MultiThreadedBen
 	}
 
 	@Override
-	public Img< FloatType > getResult()
+	public ArrayImg< FloatType, FloatArray > getResult()
 	{
 		return target;
 	}
