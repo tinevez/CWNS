@@ -257,6 +257,22 @@ public class CwntGui extends ConfigurationPanel
 
 	private JLabel lblGradientDiffusionThreshold;
 
+	private JLabel lblParameterSet;
+
+	private JLabel lblMasking;
+
+	private JLabel gammeLabel;
+
+	private JLabel lblNewLabel_1;
+
+	private JLabel betaLabel;
+
+	private JLabel epsilonLabel;
+
+	private JLabel deltaLabel;
+
+	private JLabel lblEquation;
+
 	/*
 	 * CONSTRUCTOR
 	 */
@@ -613,130 +629,196 @@ public class CwntGui extends ConfigurationPanel
 		final JPanel panelParams2 = new JPanel();
 		{
 			tabbedPane.addTab( "Param set 2", panelParams2 );
-			panelParams2.setLayout( null );
 
-			final JLabel lblParameterSet = new JLabel( "Parameter set 2" );
+			lblParameterSet = new JLabel( "Parameter set 2" );
 			lblParameterSet.setHorizontalAlignment( SwingConstants.CENTER );
 			lblParameterSet.setFont( BIG_LABEL_FONT );
-			lblParameterSet.setBounds( 10, 11, 325, 29 );
-			panelParams2.add( lblParameterSet );
 
-			final JLabel lblMasking = new JLabel( "4. Masking" );
+			lblMasking = new JLabel( "4. Masking" );
 			lblMasking.setFont( MEDIUM_LABEL_FONT );
-			lblMasking.setBounds( 10, 51, 325, 29 );
-			panelParams2.add( lblMasking );
 
 			{
-				final JLabel gammeLabel = new JLabel( "\u03B3: tanh shift" );
+				gammeLabel = new JLabel( "\u03B3: tanh shift" );
 				gammeLabel.setFont( SMALL_LABEL_FONT );
-				gammeLabel.setBounds( 10, 106, 325, 14 );
-				panelParams2.add( gammeLabel );
 
 				gammaSlider = new DoubleJSlider( -5 * scale, 5 * scale, ( int ) ( params[ 4 ] * scale ), scale );
-				gammaSlider.setBounds( 10, 131, 255, 23 );
-				panelParams2.add( gammaSlider );
 
 				gammaText = new JTextField();
 				gammaText.setText( "" + params[ 4 ] );
 				gammaText.setFont( TEXT_FIELD_FONT );
-				gammaText.setBounds( 275, 131, 60, 23 );
-				panelParams2.add( gammaText );
 
 				link( gammaSlider, gammaText );
 				gammaSlider.addChangeListener( step4ChangeListener );
 				gammaSlider.addKeyListener( step4KeyListener );
 			}
 			{
-				final JLabel lblNewLabel_3 = new JLabel( "\u03B1: gradient prefactor" );
-				lblNewLabel_3.setFont( SMALL_LABEL_FONT );
-				lblNewLabel_3.setBounds( 10, 165, 325, 14 );
-				panelParams2.add( lblNewLabel_3 );
+				lblNewLabel_1 = new JLabel( "\u03B1: gradient prefactor" );
+				lblNewLabel_1.setFont( SMALL_LABEL_FONT );
 
 				alphaSlider = new DoubleJSlider( 0, 20 * scale, ( int ) ( params[ 5 ] * scale ), scale );
-				alphaSlider.setBounds( 10, 190, 255, 23 );
-				panelParams2.add( alphaSlider );
 
 				alphaText = new JTextField( "" + params[ 5 ] );
 				alphaText.setFont( TEXT_FIELD_FONT );
-				alphaText.setBounds( 275, 190, 60, 23 );
-				panelParams2.add( alphaText );
 
 				link( alphaSlider, alphaText );
 				alphaSlider.addChangeListener( step4ChangeListener );
 				alphaText.addKeyListener( step4KeyListener );
 			}
 			{
-				final JLabel betaLabel = new JLabel( "\u03B2: positive laplacian magnitude prefactor" );
+				betaLabel = new JLabel( "\u03B2: positive laplacian magnitude prefactor" );
 				betaLabel.setFont( SMALL_LABEL_FONT );
-				betaLabel.setBounds( 10, 224, 325, 14 );
-				panelParams2.add( betaLabel );
 
 				betaSlider = new DoubleJSlider( 0, 20 * scale, ( int ) ( params[ 6 ] * scale ), scale );
-				betaSlider.setBounds( 10, 249, 255, 23 );
-				panelParams2.add( betaSlider );
 
 				betaText = new JTextField();
 				betaText.setFont( TEXT_FIELD_FONT );
 				betaText.setText( "" + params[ 6 ] );
-				betaText.setBounds( 275, 249, 60, 23 );
-				panelParams2.add( betaText );
 
 				link( betaSlider, betaText );
 				betaSlider.addChangeListener( step4ChangeListener );
 				betaText.addKeyListener( step4KeyListener );
 			}
 			{
-				final JLabel epsilonLabel = new JLabel( "\u03B5: negative hessian magnitude" );
+				epsilonLabel = new JLabel( "\u03B5: negative hessian magnitude" );
 				epsilonLabel.setFont( SMALL_LABEL_FONT );
-				epsilonLabel.setBounds( 10, 283, 325, 14 );
-				panelParams2.add( epsilonLabel );
 
 				epsilonSlider = new DoubleJSlider( 0, 20 * scale, ( int ) ( scale * params[ 7 ] ), scale );
-				epsilonSlider.setBounds( 10, 308, 255, 23 );
-				panelParams2.add( epsilonSlider );
 
 				epsilonText = new JTextField();
 				epsilonText.setFont( TEXT_FIELD_FONT );
 				epsilonText.setText( "" + params[ 7 ] );
-				epsilonText.setBounds( 275, 308, 60, 23 );
-				panelParams2.add( epsilonText );
 
 				link( epsilonSlider, epsilonText );
 				epsilonSlider.addChangeListener( step4ChangeListener );
 				epsilonText.addKeyListener( step4KeyListener );
 			}
 			{
-				final JLabel deltaLabel = new JLabel( "\u03B4: derivatives sum scale" );
+				deltaLabel = new JLabel( "\u03B4: derivatives sum scale" );
 				deltaLabel.setFont( SMALL_LABEL_FONT );
-				deltaLabel.setBounds( 20, 342, 325, 14 );
-				panelParams2.add( deltaLabel );
 
 				deltaText = new JTextField();
 				deltaText.setFont( TEXT_FIELD_FONT );
 				deltaText.setText( "" + params[ 8 ] );
-				deltaText.setBounds( 275, 367, 60, 23 );
-				panelParams2.add( deltaText );
 
 				deltaSlider = new DoubleJSlider( 0, 5 * scale, ( int ) ( params[ 8 ] * scale ), scale );
-				deltaSlider.setBounds( 10, 367, 255, 23 );
-				panelParams2.add( deltaSlider );
 
 				link( deltaSlider, deltaText );
 				deltaSlider.addChangeListener( step4ChangeListener );
 				deltaText.addKeyListener( step4KeyListener );
 			}
 
-			final JLabel lblEquation = new JLabel( "<html>M = \u00BD ( 1 + <i>tanh</i> ( \u03B3 - ( \u03B1 G + \u03B2 L + \u03B5 H ) / \u03B4 ) )</html>" );
+			lblEquation = new JLabel( "<html>M = \u00BD ( 1 + <i>tanh</i> ( \u03B3 - ( \u03B1 G + \u03B2 L + \u03B5 H ) / \u03B4 ) )</html>" );
 			lblEquation.setHorizontalAlignment( SwingConstants.CENTER );
 			lblEquation.setFont( MEDIUM_LABEL_FONT );
-			lblEquation.setBounds( 10, 413, 325, 35 );
-			panelParams2.add( lblEquation );
 
 			lblEstimatedTime = new JLabel( "Tune parameters to get a duration estimate" );
 			lblEstimatedTime.setFont( SMALL_LABEL_FONT );
-			lblEstimatedTime.setBounds( 10, 71, 325, 23 );
-			panelParams2.add( lblEstimatedTime );
 		}
+		final GroupLayout gl_panelParams2 = new GroupLayout( panelParams2 );
+		gl_panelParams2.setHorizontalGroup(
+				gl_panelParams2.createParallelGroup( Alignment.LEADING )
+						.addGroup( gl_panelParams2.createSequentialGroup()
+								.addGroup( gl_panelParams2.createParallelGroup( Alignment.LEADING )
+										.addGroup( gl_panelParams2.createSequentialGroup()
+												.addGap( 10 )
+												.addComponent( gammaSlider, GroupLayout.PREFERRED_SIZE, 297, GroupLayout.PREFERRED_SIZE )
+												.addPreferredGap( ComponentPlacement.RELATED )
+												.addComponent( gammaText, GroupLayout.PREFERRED_SIZE, 60, GroupLayout.PREFERRED_SIZE ) )
+										.addGroup( gl_panelParams2.createSequentialGroup()
+												.addGap( 10 )
+												.addComponent( alphaSlider, GroupLayout.PREFERRED_SIZE, 297, GroupLayout.PREFERRED_SIZE )
+												.addPreferredGap( ComponentPlacement.RELATED )
+												.addComponent( alphaText, GroupLayout.PREFERRED_SIZE, 60, GroupLayout.PREFERRED_SIZE ) )
+										.addGroup( gl_panelParams2.createSequentialGroup()
+												.addGap( 10 )
+												.addComponent( betaSlider, GroupLayout.PREFERRED_SIZE, 297, GroupLayout.PREFERRED_SIZE )
+												.addPreferredGap( ComponentPlacement.RELATED )
+												.addComponent( betaText, GroupLayout.PREFERRED_SIZE, 60, GroupLayout.PREFERRED_SIZE ) )
+										.addGroup( gl_panelParams2.createSequentialGroup()
+												.addGap( 10 )
+												.addComponent( epsilonSlider, GroupLayout.PREFERRED_SIZE, 297, GroupLayout.PREFERRED_SIZE )
+												.addPreferredGap( ComponentPlacement.RELATED )
+												.addComponent( epsilonText, GroupLayout.PREFERRED_SIZE, 60, GroupLayout.PREFERRED_SIZE ) )
+										.addGroup( gl_panelParams2.createSequentialGroup()
+												.addGap( 10 )
+												.addComponent( deltaSlider, GroupLayout.PREFERRED_SIZE, 297, GroupLayout.PREFERRED_SIZE )
+												.addPreferredGap( ComponentPlacement.RELATED )
+												.addComponent( deltaText, GroupLayout.PREFERRED_SIZE, 60, GroupLayout.PREFERRED_SIZE ) )
+										.addGroup( gl_panelParams2.createSequentialGroup()
+												.addGap( 10 )
+												.addComponent( lblParameterSet, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE ) )
+										.addGroup( Alignment.TRAILING, gl_panelParams2.createSequentialGroup()
+												.addGap( 10 )
+												.addGroup( gl_panelParams2.createParallelGroup( Alignment.TRAILING )
+														.addComponent( lblEstimatedTime, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE )
+														.addComponent( lblMasking, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE ) ) )
+										.addGroup( gl_panelParams2.createSequentialGroup()
+												.addGap( 10 )
+												.addComponent( gammeLabel, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE ) )
+										.addGroup( gl_panelParams2.createSequentialGroup()
+												.addGap( 10 )
+												.addComponent( lblNewLabel_1, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE ) )
+										.addGroup( gl_panelParams2.createSequentialGroup()
+												.addGap( 10 )
+												.addComponent( betaLabel, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE ) )
+										.addGroup( gl_panelParams2.createSequentialGroup()
+												.addGap( 10 )
+												.addComponent( epsilonLabel, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE ) )
+										.addGroup( gl_panelParams2.createSequentialGroup()
+												.addGap( 20 )
+												.addComponent( deltaLabel, GroupLayout.DEFAULT_SIZE, 353, Short.MAX_VALUE ) )
+										.addGroup( gl_panelParams2.createSequentialGroup()
+												.addGap( 10 )
+												.addComponent( lblEquation, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE ) ) )
+								.addContainerGap() )
+				);
+		gl_panelParams2.setVerticalGroup(
+				gl_panelParams2.createParallelGroup( Alignment.LEADING )
+						.addGroup( gl_panelParams2.createSequentialGroup()
+								.addGroup( gl_panelParams2.createParallelGroup( Alignment.LEADING )
+										.addGroup( gl_panelParams2.createSequentialGroup()
+												.addGap( 11 )
+												.addComponent( lblParameterSet, GroupLayout.PREFERRED_SIZE, 29, GroupLayout.PREFERRED_SIZE )
+												.addGap( 31 )
+												.addComponent( lblEstimatedTime, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE ) )
+										.addGroup( gl_panelParams2.createSequentialGroup()
+												.addGap( 51 )
+												.addComponent( lblMasking, GroupLayout.PREFERRED_SIZE, 29, GroupLayout.PREFERRED_SIZE ) ) )
+								.addGap( 12 )
+								.addComponent( gammeLabel )
+								.addGap( 11 )
+								.addGroup( gl_panelParams2.createParallelGroup( Alignment.LEADING )
+										.addComponent( gammaText, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE )
+										.addComponent( gammaSlider, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE ) )
+								.addGap( 11 )
+								.addComponent( lblNewLabel_1 )
+								.addGap( 11 )
+								.addGroup( gl_panelParams2.createParallelGroup( Alignment.LEADING )
+										.addComponent( alphaText, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE )
+										.addComponent( alphaSlider, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE ) )
+								.addGap( 11 )
+								.addComponent( betaLabel )
+								.addGap( 11 )
+								.addGroup( gl_panelParams2.createParallelGroup( Alignment.LEADING )
+										.addComponent( betaText, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE )
+										.addComponent( betaSlider, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE ) )
+								.addGap( 11 )
+								.addComponent( epsilonLabel )
+								.addGap( 11 )
+								.addGroup( gl_panelParams2.createParallelGroup( Alignment.LEADING )
+										.addComponent( epsilonText, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE )
+										.addComponent( epsilonSlider, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE ) )
+								.addGap( 11 )
+								.addComponent( deltaLabel )
+								.addGap( 11 )
+								.addGroup( gl_panelParams2.createParallelGroup( Alignment.LEADING )
+										.addComponent( deltaText, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE )
+										.addComponent( deltaSlider, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE ) )
+								.addGap( 23 )
+								.addComponent( lblEquation, GroupLayout.PREFERRED_SIZE, 35, GroupLayout.PREFERRED_SIZE )
+								.addContainerGap( 106, Short.MAX_VALUE ) )
+				);
+		panelParams2.setLayout( gl_panelParams2 );
 
 //		{
 //			JPanel panelRun = new JPanel();
