@@ -10,9 +10,11 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.swing.GroupLayout;
@@ -177,7 +179,7 @@ public class CwntGui extends ConfigurationPanel
 
 	private final int scale = 10;
 
-	private final DecimalFormat df2d = new DecimalFormat( "0.####" );
+	private final DecimalFormat df2d = new DecimalFormat( "0.####", DecimalFormatSymbols.getInstance( Locale.US ) );
 
 	private JTextField gaussFiltSigmaText;
 
