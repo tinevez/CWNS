@@ -12,13 +12,15 @@ import mpicbg.imglib.algorithm.gauss.GaussianGradient2D;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 
 public class GaussianGradient_TestDrive {
 
 	@SuppressWarnings({ "unchecked", "rawtypes", "unused" })
-	public static void main(final String[] args) {
+	public static < T extends RealType< T > & NativeType< T >> void main( final String[] args )
+	{
 		
 //		File testImage = new File("/Users/tinevez/Projects/BRajaseka/Data/point.tif");
 		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/Meta-nov7mdb18ssplus-embryo2-1.tif" );
@@ -28,7 +30,7 @@ public class GaussianGradient_TestDrive {
 		final ImagePlus imp = IJ.openImage(testImage.getAbsolutePath());
 		imp.show();
 
-		final Img< ? extends RealType > source = ImageJFunctions.wrap( imp );
+		final Img< T > source = ImageJFunctions.wrap( imp );
 		final Img floatImage = DetectionUtils.copyToFloatImg( source, source, new ArrayImgFactory< FloatType >() );
 		
 		System.out.print("Gaussian gradient 2D ... ");
