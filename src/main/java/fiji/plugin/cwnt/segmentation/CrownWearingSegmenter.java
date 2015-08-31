@@ -10,6 +10,7 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
 import net.imglib2.algorithm.labeling.AllConnectedComponents;
 import net.imglib2.img.Img;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.labeling.Labeling;
 import net.imglib2.labeling.NativeImgLabeling;
 import net.imglib2.type.NativeType;
@@ -23,6 +24,8 @@ import fiji.plugin.trackmate.detection.SpotDetector;
 
 public class CrownWearingSegmenter< T extends RealType< T > & NativeType< T >> extends MultiThreadedBenchmarkAlgorithm implements SpotDetector< T >
 {
+
+	private static final boolean DEBUG = false;
 
 	private Img< FloatType > masked;
 
@@ -93,6 +96,8 @@ public class CrownWearingSegmenter< T extends RealType< T > & NativeType< T >> e
 		}
 
 		// Thresholding
+		if ( DEBUG )
+			System.out.println( "Thresholding..." );
 		final double thresholdFactor = ( Double ) settings.get( CrownWearingSegmenterFactory.THRESHOLD_FACTOR_PARAMETER );
 		final OtsuThresholder2D< FloatType > thresholder = new OtsuThresholder2D< FloatType >( masked, thresholdFactor );
 		thresholder.setNumThreads( numThreads );
@@ -106,8 +111,16 @@ public class CrownWearingSegmenter< T extends RealType< T > & NativeType< T >> e
 			errorMessage = thresholder.getErrorMessage();
 			return false;
 		}
+		if ( DEBUG )
+		{
+			System.out.println( "Thresholding done." );
+			ImageJFunctions.show( thresholded, "Thresholded" );
+		}
+
 
 		// Labeling
+		if ( DEBUG )
+			System.out.println( "Labelling..." );
 		final Iterator< Integer > labelGenerator = AllConnectedComponents.getIntegerNames( 0 );
 		final Img< IntType > img = Util.getArrayOrCellImgFactory( source, new IntType() ).create( source, new IntType() );
 		labeling = new NativeImgLabeling< Integer, IntType >( img );
@@ -116,14 +129,28 @@ public class CrownWearingSegmenter< T extends RealType< T > & NativeType< T >> e
 		final long[][] structuringElement = new long[][] { { -1, 0, 0 }, { 1, 0, 0 }, { 0, -1, 0 }, { 0, 1, 0 }, { 0, 0, -1 }, { 0, 0, 1 } };
 
 		AllConnectedComponents.labelAllConnectedComponents( labeling, thresholded, labelGenerator, structuringElement );
+		if ( DEBUG )
+		{
+			System.out.println( "Labelling done." );
+			ImageJFunctions.show( img, "Labels." );
+		}
 
 		// Splitting and spot creation
+		if ( DEBUG )
+		{
+			System.out.println( "Nuclei splitting..." );
+			System.out.println( "Spatial calibration: " + Util.printCoordinates( calibration ) );
+
+		}
 		final NucleiSplitter splitter = new NucleiSplitter( labeling, calibration );
 		if ( !( splitter.checkInput() && splitter.process() ) )
 		{
 			IJ.error( "Problem with splitter: " + splitter.getErrorMessage() );
 			return false;
 		}
+		if ( DEBUG )
+			System.out.println( "Splitting done." );
+
 		spots = splitter.getResult();
 		processingTime = System.currentTimeMillis() - start;
 		return true;

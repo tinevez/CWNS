@@ -28,7 +28,7 @@ import net.imglib2.view.Views;
 public class NucleiMasker< T extends RealType< T > & NativeType< T >> extends MultiThreadedBenchmarkAlgorithm implements OutputAlgorithm< ArrayImg< FloatType, FloatArray >>
 {
 
-	private static final boolean DEBUG = false;
+	private static final boolean DEBUG = true;
 
 	/**
 	 * A set of default parameters suitable for masking, as determined by Bhavna

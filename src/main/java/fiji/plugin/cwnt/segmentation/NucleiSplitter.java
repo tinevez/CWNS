@@ -11,6 +11,7 @@ import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
 import net.imglib2.labeling.Labeling;
 import net.imglib2.labeling.LabelingType;
 import net.imglib2.multithreading.SimpleMultiThreading;
+import net.imglib2.roi.IterableRegionOfInterest;
 
 import org.apache.commons.math3.ml.clustering.CentroidCluster;
 import org.apache.commons.math3.ml.clustering.KMeansPlusPlusClusterer;
@@ -21,7 +22,7 @@ import fiji.plugin.trackmate.Spot;
 public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 {
 
-	private static final boolean DEBUG = false;
+	private static final boolean DEBUG = true;
 
 	private static final String BASE_ERROR_MESSAGE = "[NucleiSplitter] ";
 
@@ -84,7 +85,6 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 	@Override
 	public boolean process()
 	{
-
 		final long start = System.currentTimeMillis();
 
 		final long volumeEstimate = getVolumeEstimate();
@@ -138,7 +138,9 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 		// points
 		final int volume = ( int ) source.getArea( label );
 		final Collection< CalibratedEuclideanIntegerPoint > pixels = new ArrayList< CalibratedEuclideanIntegerPoint >( volume );
-		final Cursor< LabelingType< Integer >> cursor = source.localizingCursor();
+
+		final IterableRegionOfInterest roi = source.getIterableRegionOfInterest( label );
+		final Cursor< LabelingType< Integer >> cursor = roi.getIterableIntervalOverROI( source ).cursor();
 		final int[] position = new int[ source.numDimensions() ];
 		while ( cursor.hasNext() )
 		{
@@ -152,10 +154,9 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 		final List< CentroidCluster< CalibratedEuclideanIntegerPoint >> clusters = clusterer.cluster( pixels );
 
 		// Create spots from clusters
-		final double voxelVolume = calibration[ 0 ] * calibration[ 1 ] * calibration[ 2 ];
 		for ( final CentroidCluster< CalibratedEuclideanIntegerPoint > cluster : clusters )
 		{
-			final float[] centroid = new float[ 3 ];
+			final double[] centroid = new double[ 3 ];
 			for ( final CalibratedEuclideanIntegerPoint p : cluster.getPoints() )
 			{
 				for ( int i = 0; i < centroid.length; i++ )
@@ -167,8 +168,10 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 			{
 				centroid[ i ] /= cluster.getPoints().size();
 			}
+
+			final double voxelVolume = calibration[ 0 ] * calibration[ 1 ] * calibration[ 2 ];
 			final double nucleusVol = cluster.getPoints().size() * voxelVolume;
-			final float radius = ( float ) Math.pow( 3 * nucleusVol / ( 4 * Math.PI ), 0.33333 );
+			final double radius = Math.pow( 3 * nucleusVol / ( 4 * Math.PI ), 0.33333 );
 			final double quality = 1.0 / n;
 			// split spot get a quality of 1 over the number of spots in the
 			// initial cluster
@@ -258,8 +261,8 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 		for ( final Integer label : nonSuspiciousNuclei )
 		{
 			final double nucleusVol = source.getArea( label ) * voxelVolume;
-			final float radius = ( float ) Math.pow( 3 * nucleusVol / ( 4 * Math.PI ), 0.33333 );
-			final float[] coordinates = getCentroid( label );
+			final double radius = Math.pow( 3 * nucleusVol / ( 4 * Math.PI ), 0.33333 );
+			final double[] coordinates = getCentroid( label );
 			final Spot spot = new Spot( coordinates[ 0 ], coordinates[ 1 ], coordinates[ 2 ], radius, 1.0 );
 			// non-suspicious spots get a quality of 1
 			spots.add( spot );
@@ -275,11 +278,14 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 		return volumeEstimate;
 	}
 
-	private float[] getCentroid( final Integer label )
+	private double[] getCentroid( final Integer label )
 	{
-		final float[] centroid = new float[ 3 ];
+		final double[] centroid = new double[ 3 ];
 		final int[] position = new int[ source.numDimensions() ];
-		final Cursor< LabelingType< Integer >> cursor = source.localizingCursor();
+
+		final IterableRegionOfInterest roi = source.getIterableRegionOfInterest( label );
+		final Cursor< LabelingType< Integer >> cursor = roi.getIterableIntervalOverROI( source ).cursor();
+
 		int npixels = 0;
 		while ( cursor.hasNext() )
 		{

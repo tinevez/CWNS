@@ -47,6 +47,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JFrame;
 
@@ -54,6 +56,7 @@ import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.basictypeaccess.array.FloatArray;
+import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.real.FloatType;
 
@@ -339,7 +342,7 @@ public class CWNT_ implements PlugIn
 		logger.log( String.format( "Found %d tracks.\n", model.getTrackModel().nTracks( true ) ) );
 	}
 
-	@SuppressWarnings( { "rawtypes", "unchecked" } )
+	@SuppressWarnings( { "rawtypes", "unchecked", "deprecation" } )
 	private Model execSegmentation( final Settings settings )
 	{
 		if ( settings.dt == 0 )
@@ -356,38 +359,98 @@ public class CWNT_ implements PlugIn
 		logger.log( settings.toString() );
 		logger.setStatus( "Segmenting..." );
 
-		for ( int i = 0; i < settings.imp.getNFrames(); i++ )
+		/*
+		 * Fine tune multi-threading: If we have 10 threads and 15 frames to
+		 * process, we process 10 frames at once, and allocate 1 thread per
+		 * frame. But if we have 10 threads and 2 frames, we process the 2
+		 * frames at once, and allocate 5 threads per frame if we can.
+		 */
+		final int numThreads = Runtime.getRuntime().availableProcessors();
+		final int numFrames = settings.imp.getNFrames();
+		final int nSimultaneousFrames = Math.min( numThreads, numFrames );
+		final int threadsPerFrame = Math.max( 1, numThreads / nSimultaneousFrames );
+
+		final Thread[] threads = SimpleMultiThreading.newThreads( nSimultaneousFrames );
+		final AtomicBoolean ok = new AtomicBoolean( true );
+
+		// Prepare the thread array
+		final AtomicInteger ai = new AtomicInteger( settings.tstart );
+		for ( int ithread = 0; ithread < threads.length; ithread++ )
 		{
 
-			// Instantiate segmenter
-			final CrownWearingSegmenter segmenter = factory.getDetector( null, i );
-
-			// Exec
-			if ( !( segmenter.checkInput() && segmenter.process() ) )
+			threads[ ithread ] = new Thread( "CWNT segmentation thread " + ( 1 + ithread ) + "/" + threads.length )
 			{
-				logger.error( "Problem with segmenter: " + segmenter.getErrorMessage() );
-				return null;
-			}
-			final List< Spot > spots = segmenter.getResult();
+				private boolean wasInterrupted()
+				{
+					try
+					{
+						if ( isInterrupted() )
+							return true;
+						sleep( 0 );
+						return false;
+					}
+					catch ( final InterruptedException e )
+					{
+						return true;
+					}
+				}
 
-			TMUtils.translateSpots( spots,
-					settings.xstart * calibration[ 0 ],
-					settings.ystart * calibration[ 1 ],
-					settings.zstart * calibration[ 2 ] );
+				@Override
+				public void run()
+				{
 
-			// Tune time features
-			final double t = i * settings.dt;
-			for ( final Spot spot : spots )
-			{
-				spot.putFeature( Spot.POSITION_T, t );
-			}
+					for ( int frame = ai.getAndIncrement(); frame <= settings.tend; frame = ai.getAndIncrement() )
+					{
+						try
+						{
+							if ( !ok.get() )
+							{
+								break;
+							}
 
-			allSpots.put( i, spots );
-			logger.setProgress( ( double ) ( i + 1 ) / settings.imp.getNFrames() );
-			logger.log( String.format( "Frame %3d: found %d nuclei in %.1f s.\n",
-					( i + 1 ), spots.size(), ( segmenter.getProcessingTime() / 1e3 ) ) );
+							// Instantiate segmenter
+							final CrownWearingSegmenter segmenter = factory.getDetector( null, frame );
+							segmenter.setNumThreads( threadsPerFrame );
+
+							// Exec
+							if ( !( segmenter.checkInput() && segmenter.process() ) )
+							{
+								ok.set( false );
+								logger.error( "Problem with segmenter: " + segmenter.getErrorMessage() );
+								return;
+							}
+							final List< Spot > spots = segmenter.getResult();
+
+							TMUtils.translateSpots( spots,
+									settings.xstart * calibration[ 0 ],
+									settings.ystart * calibration[ 1 ],
+									settings.zstart * calibration[ 2 ] );
+
+							// Tune time features
+							final double t = frame * settings.dt;
+							for ( final Spot spot : spots )
+							{
+								spot.putFeature( Spot.POSITION_T, t );
+							}
+
+							allSpots.put( frame, spots );
+							logger.setProgress( ( double ) ( frame + 1 ) / settings.imp.getNFrames() );
+							logger.log( String.format( "Frame %3d: found %d nuclei in %.1f s.\n",
+									( frame + 1 ), spots.size(), ( segmenter.getProcessingTime() / 1e3 ) ) );
+						}
+						catch ( final RuntimeException e )
+						{
+							final Throwable cause = e.getCause();
+							if ( cause != null && cause instanceof InterruptedException ) { return; }
+							throw e;
+						}
+					}
+				}
+			};
 		}
-
+		
+		SimpleMultiThreading.startAndJoin( threads );
+		
 		allSpots.setVisible( true );
 
 		logger.setProgress( 0 );
@@ -747,7 +810,7 @@ public class CWNT_ implements PlugIn
 	{
 
 //		File testImage = new File("E:/Users/JeanYves/Documents/Projects/BRajaseka/Data/Meta-nov7mdb18ssplus-embryo2-1.tif");
-		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/Meta-nov7mdb18ssplus-embryo2-1.tif" );
+		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/Meta-nov7mdb18ssplus-embryo2-4.tif" );
 
 		ImageJ.main( args );
 		final ImagePlus imp = IJ.openImage( testImage.getAbsolutePath() );

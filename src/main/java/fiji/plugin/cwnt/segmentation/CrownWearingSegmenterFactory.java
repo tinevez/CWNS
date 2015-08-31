@@ -270,7 +270,7 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 	{
 		final double[] maskingParams = new double[9];
 		maskingParams [ 0 ] = ( Double ) settings.get( SIGMA_F_PARAMETER ); 
-		maskingParams[ 1 ] = ( Integer) settings.get(N_AD_PARAMETER);
+		maskingParams[ 1 ] = ( Double ) settings.get( N_AD_PARAMETER );
 		maskingParams[ 2 ] = ( Double ) settings.get( KAPPA_PARAMETER );
 		maskingParams[ 3 ] = ( Double ) settings.get( SIGMA_G_PARAMETER );
 		maskingParams[ 4 ] = ( Double ) settings.get( GAMMA_PARAMETER );

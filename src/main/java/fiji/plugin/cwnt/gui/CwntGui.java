@@ -17,6 +17,7 @@ import java.util.Map;
 
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -224,6 +225,8 @@ public class CwntGui extends ConfigurationPanel
 
 	private JLabel lblEstimatedTime;
 
+	private JLabel lblEstimatedTime_1;
+
 	/** The go button that launches the whole segmentation. */
 	public JButton btnGo;
 
@@ -307,7 +310,7 @@ public class CwntGui extends ConfigurationPanel
 
 	public void setDurationEstimate( final double t )
 	{
-		lblEstimatedTime.setText( String.format( "Processing duration estimate: %.0f min.", t ) );
+		lblEstimatedTime_1.setText( String.format( "Processing duration estimate: %.0f min.", t ) );
 	}
 
 	@Override
@@ -718,36 +721,36 @@ public class CwntGui extends ConfigurationPanel
 		gl_panelParams2.setHorizontalGroup(
 				gl_panelParams2.createParallelGroup( Alignment.LEADING )
 						.addGroup( gl_panelParams2.createSequentialGroup()
-								.addGroup( gl_panelParams2.createParallelGroup( Alignment.LEADING )
+								.addGroup( gl_panelParams2.createParallelGroup( Alignment.TRAILING )
 										.addGroup( gl_panelParams2.createSequentialGroup()
 												.addGap( 10 )
-												.addComponent( gammaSlider, GroupLayout.PREFERRED_SIZE, 297, GroupLayout.PREFERRED_SIZE )
+												.addComponent( gammaSlider, GroupLayout.DEFAULT_SIZE, 297, Short.MAX_VALUE )
 												.addPreferredGap( ComponentPlacement.RELATED )
 												.addComponent( gammaText, GroupLayout.PREFERRED_SIZE, 60, GroupLayout.PREFERRED_SIZE ) )
 										.addGroup( gl_panelParams2.createSequentialGroup()
 												.addGap( 10 )
-												.addComponent( alphaSlider, GroupLayout.PREFERRED_SIZE, 297, GroupLayout.PREFERRED_SIZE )
+												.addComponent( alphaSlider, GroupLayout.DEFAULT_SIZE, 297, Short.MAX_VALUE )
 												.addPreferredGap( ComponentPlacement.RELATED )
 												.addComponent( alphaText, GroupLayout.PREFERRED_SIZE, 60, GroupLayout.PREFERRED_SIZE ) )
 										.addGroup( gl_panelParams2.createSequentialGroup()
 												.addGap( 10 )
-												.addComponent( betaSlider, GroupLayout.PREFERRED_SIZE, 297, GroupLayout.PREFERRED_SIZE )
+												.addComponent( betaSlider, GroupLayout.DEFAULT_SIZE, 297, Short.MAX_VALUE )
 												.addPreferredGap( ComponentPlacement.RELATED )
 												.addComponent( betaText, GroupLayout.PREFERRED_SIZE, 60, GroupLayout.PREFERRED_SIZE ) )
 										.addGroup( gl_panelParams2.createSequentialGroup()
 												.addGap( 10 )
-												.addComponent( epsilonSlider, GroupLayout.PREFERRED_SIZE, 297, GroupLayout.PREFERRED_SIZE )
+												.addComponent( epsilonSlider, GroupLayout.DEFAULT_SIZE, 297, Short.MAX_VALUE )
 												.addPreferredGap( ComponentPlacement.RELATED )
 												.addComponent( epsilonText, GroupLayout.PREFERRED_SIZE, 60, GroupLayout.PREFERRED_SIZE ) )
 										.addGroup( gl_panelParams2.createSequentialGroup()
 												.addGap( 10 )
-												.addComponent( deltaSlider, GroupLayout.PREFERRED_SIZE, 297, GroupLayout.PREFERRED_SIZE )
+												.addComponent( deltaSlider, GroupLayout.DEFAULT_SIZE, 297, Short.MAX_VALUE )
 												.addPreferredGap( ComponentPlacement.RELATED )
 												.addComponent( deltaText, GroupLayout.PREFERRED_SIZE, 60, GroupLayout.PREFERRED_SIZE ) )
 										.addGroup( gl_panelParams2.createSequentialGroup()
 												.addGap( 10 )
 												.addComponent( lblParameterSet, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE ) )
-										.addGroup( Alignment.TRAILING, gl_panelParams2.createSequentialGroup()
+										.addGroup( gl_panelParams2.createSequentialGroup()
 												.addGap( 10 )
 												.addGroup( gl_panelParams2.createParallelGroup( Alignment.TRAILING )
 														.addComponent( lblEstimatedTime, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE )
@@ -820,32 +823,58 @@ public class CwntGui extends ConfigurationPanel
 				);
 		panelParams2.setLayout( gl_panelParams2 );
 
-//		{
-//			JPanel panelRun = new JPanel();
-//			tabbedPane.addTab("Run", null, panelRun, null);
-//			panelRun.setLayout(null);
-//
-//			JLabel lblLaunchComputation = new JLabel("Launch computation");
-//			lblLaunchComputation.setFont(BIG_LABEL_FONT);
-//			lblLaunchComputation.setHorizontalAlignment(SwingConstants.CENTER);
-//			lblLaunchComputation.setBounds(10, 11, 325, 31);
-//			panelRun.add(lblLaunchComputation);
-//
-//			lblEstimatedTime = new JLabel("Tune parameters to get a duration estimate");
-//			lblEstimatedTime.setFont(SMALL_LABEL_FONT);
-//			lblEstimatedTime.setBounds(10, 71, 325, 23);
-//			panelRun.add(lblEstimatedTime);
-//
-//			btnGo = new JButton("Go!");
-//			btnGo.setFont(MEDIUM_LABEL_FONT);
-//			btnGo.setIcon(new ImageIcon(CwntGui.class.getResource("resources/plugin_go.png")));
-//			btnGo.setBounds(120, 135, 100, 50);
-//			btnGo.addActionListener(new ActionListener() {
-//				public void actionPerformed(ActionEvent e) { fireEvent(GO_BUTTON_PRESSED);	}
-//			});
-//			panelRun.add(btnGo);
-//
-//		}
+		{
+			final JPanel panelRun = new JPanel();
+			tabbedPane.addTab( "Run", null, panelRun, null );
+
+			final JLabel lblLaunchComputation = new JLabel( "Launch computation" );
+			lblLaunchComputation.setFont( BIG_LABEL_FONT );
+			lblLaunchComputation.setHorizontalAlignment( SwingConstants.CENTER );
+
+			lblEstimatedTime_1 = new JLabel( "Tune parameters to get a duration estimate" );
+			lblEstimatedTime_1.setFont( SMALL_LABEL_FONT );
+
+			btnGo = new JButton( "Go!" );
+			btnGo.setFont( MEDIUM_LABEL_FONT );
+			btnGo.setIcon( new ImageIcon( CwntGui.class.getResource( "resources/plugin_go.png" ) ) );
+			btnGo.addActionListener( new ActionListener()
+			{
+				@Override
+				public void actionPerformed( final ActionEvent e )
+				{
+					fireEvent( GO_BUTTON_PRESSED );
+				}
+			} );
+			final GroupLayout gl_panelRun = new GroupLayout( panelRun );
+			gl_panelRun.setHorizontalGroup(
+					gl_panelRun.createParallelGroup( Alignment.LEADING )
+							.addGroup( gl_panelRun.createSequentialGroup()
+									.addGroup( gl_panelRun.createParallelGroup( Alignment.LEADING )
+											.addGroup( gl_panelRun.createSequentialGroup()
+													.addGap( 10 )
+													.addComponent( lblLaunchComputation, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE ) )
+											.addGroup( gl_panelRun.createSequentialGroup()
+													.addGap( 10 )
+													.addComponent( lblEstimatedTime_1, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE ) )
+											.addGroup( gl_panelRun.createSequentialGroup()
+													.addGap( 137 )
+													.addComponent( btnGo, GroupLayout.PREFERRED_SIZE, 100, GroupLayout.PREFERRED_SIZE ) ) )
+									.addContainerGap() )
+					);
+			gl_panelRun.setVerticalGroup(
+					gl_panelRun.createParallelGroup( Alignment.LEADING )
+							.addGroup( gl_panelRun.createSequentialGroup()
+									.addGap( 11 )
+									.addComponent( lblLaunchComputation, GroupLayout.PREFERRED_SIZE, 31, GroupLayout.PREFERRED_SIZE )
+									.addGap( 29 )
+									.addComponent( lblEstimatedTime_1, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE )
+									.addGap( 40 )
+									.addComponent( btnGo, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE )
+									.addGap( 370 ) )
+					);
+			panelRun.setLayout( gl_panelRun );
+
+		}
 	}
 
 	public void setModelAndView( final Model model, final TrackMateModelView view )
