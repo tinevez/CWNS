@@ -3,10 +3,12 @@ package fiji.plugin.cwnt.segmentation;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.imglib2.Cursor;
+import net.imglib2.RandomAccess;
 import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
 import net.imglib2.labeling.Labeling;
 import net.imglib2.labeling.LabelingType;
@@ -22,7 +24,7 @@ import fiji.plugin.trackmate.Spot;
 public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 {
 
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 
 	private static final String BASE_ERROR_MESSAGE = "[NucleiSplitter] ";
 
@@ -55,15 +57,18 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 
 	private final double[] calibration;
 
+	private final Iterator< Integer > labelGenerator;
+
 	/*
 	 * CONSTRUCTOR
 	 */
 
-	public NucleiSplitter( final Labeling< Integer > source, final double[] calibration )
+	public NucleiSplitter( final Labeling< Integer > source, final double[] calibration, final Iterator< Integer > labelGenerator )
 	{
 		super();
 		this.source = source;
 		this.calibration = calibration;
+		this.labelGenerator = labelGenerator;
 		this.spots = Collections.synchronizedList( new ArrayList< Spot >( ( int ) 1.5 * source.getLabels().size() ) );
 	}
 
@@ -141,10 +146,10 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 
 		final IterableRegionOfInterest roi = source.getIterableRegionOfInterest( label );
 		final Cursor< LabelingType< Integer >> cursor = roi.getIterableIntervalOverROI( source ).cursor();
-		final int[] position = new int[ source.numDimensions() ];
 		while ( cursor.hasNext() )
 		{
 			cursor.fwd();
+			final int[] position = new int[ source.numDimensions() ];
 			cursor.localize( position );
 			pixels.add( new CalibratedEuclideanIntegerPoint( position, calibration ) );
 		}
@@ -154,11 +159,22 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 		final List< CentroidCluster< CalibratedEuclideanIntegerPoint >> clusters = clusterer.cluster( pixels );
 
 		// Create spots from clusters
+		final RandomAccess< LabelingType< Integer >> ra = source.randomAccess( source );
 		for ( final CentroidCluster< CalibratedEuclideanIntegerPoint > cluster : clusters )
 		{
+			// Relabel new clusters.
+			List< Integer > currentLabel = null;
+
 			final double[] centroid = new double[ 3 ];
 			for ( final CalibratedEuclideanIntegerPoint p : cluster.getPoints() )
 			{
+				ra.setPosition( p );
+				if ( null == currentLabel )
+				{
+					currentLabel = ra.get().intern( labelGenerator.next() );
+				}
+				ra.get().setLabeling( currentLabel );
+
 				for ( int i = 0; i < centroid.length; i++ )
 				{
 					centroid[ i ] += p.getPoint()[ i ];

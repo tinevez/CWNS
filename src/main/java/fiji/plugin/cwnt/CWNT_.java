@@ -3,6 +3,7 @@ package fiji.plugin.cwnt;
 import fiji.plugin.cwnt.gui.CwntGui;
 import fiji.plugin.cwnt.segmentation.CrownWearingSegmenter;
 import fiji.plugin.cwnt.segmentation.CrownWearingSegmenterFactory;
+import fiji.plugin.cwnt.segmentation.LabelToRGB;
 import fiji.plugin.cwnt.segmentation.NucleiMasker;
 import fiji.plugin.trackmate.Logger;
 import fiji.plugin.trackmate.Model;
@@ -25,9 +26,11 @@ import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.WindowManager;
+import ij.gui.NewImage;
 import ij.plugin.Duplicator;
 import ij.plugin.PlugIn;
 import ij.process.FloatProcessor;
+import ij.process.ImageProcessor;
 
 import java.awt.Component;
 import java.awt.Dimension;
@@ -56,7 +59,10 @@ import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.basictypeaccess.array.FloatArray;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.labeling.Labeling;
 import net.imglib2.multithreading.SimpleMultiThreading;
+import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.real.FloatType;
 
@@ -98,7 +104,7 @@ public class CWNT_ implements PlugIn
 
 		// Create Panel silently
 		gui = new CwntGui( imp );
-		logger = Logger.DEFAULT_LOGGER;
+		logger = Logger.IJ_LOGGER;
 
 		// Add listeners
 		imp.getCanvas().addMouseListener( new MouseAdapter()
@@ -221,7 +227,6 @@ public class CWNT_ implements PlugIn
 							}
 						};
 					}.start();
-
 				}
 				else
 				{
@@ -373,6 +378,28 @@ public class CWNT_ implements PlugIn
 		final Thread[] threads = SimpleMultiThreading.newThreads( nSimultaneousFrames );
 		final AtomicBoolean ok = new AtomicBoolean( true );
 
+		/*
+		 * Label ImagePlus holder.
+		 */
+
+		final boolean genLabelImg = gui.getGenLabelFlag();
+		final ImagePlus labelImp;
+		if ( genLabelImg )
+		{
+			final ImagePlus imp = settings.imp;
+			final int width = imp.getWidth();
+			final int height = imp.getHeight();
+			final int slices = imp.getStackSize();
+			final int options = NewImage.FILL_BLACK;
+			labelImp = NewImage.createRGBImage( "Labels for " + imp.getTitle(), width, height, slices, options );
+			labelImp.setCalibration( imp.getCalibration() );
+			labelImp.setDimensions( imp.getNChannels(), imp.getNSlices(), imp.getNFrames() );
+		}
+		else
+		{
+			labelImp = null;
+		}
+
 		// Prepare the thread array
 		final AtomicInteger ai = new AtomicInteger( settings.tstart );
 		for ( int ithread = 0; ithread < threads.length; ithread++ )
@@ -380,6 +407,7 @@ public class CWNT_ implements PlugIn
 
 			threads[ ithread ] = new Thread( "CWNT segmentation thread " + ( 1 + ithread ) + "/" + threads.length )
 			{
+
 				private boolean wasInterrupted()
 				{
 					try
@@ -437,6 +465,35 @@ public class CWNT_ implements PlugIn
 							logger.setProgress( ( double ) ( frame + 1 ) / settings.imp.getNFrames() );
 							logger.log( String.format( "Frame %3d: found %d nuclei in %.1f s.\n",
 									( frame + 1 ), spots.size(), ( segmenter.getProcessingTime() / 1e3 ) ) );
+
+							/*
+							 * Harvest label image.
+							 */
+
+							if ( genLabelImg )
+							{
+								final Labeling< Integer > labels = segmenter.getLabeling();
+								final LabelToRGB rgbConverter = new LabelToRGB( labels );
+								rgbConverter.setNumThreads( threadsPerFrame );
+								
+								if ( !rgbConverter.checkInput() || !rgbConverter.process() )
+								{
+									ok.set( false );
+									logger.error( "Problem with labels: " + rgbConverter.getErrorMessage() );
+								}
+								else
+								{
+									final Img< ARGBType > rgb = rgbConverter.getResult();
+									final ImagePlus rgbImp = ImageJFunctions.wrapRGB( rgb, "RGB frame " + frame );
+									final ImageStack stack = rgbImp.getImageStack();
+									for ( int i = 0; i < rgbImp.getStackSize(); i++ )
+									{
+										final ImageProcessor ip = stack.getProcessor( i + 1 ).duplicate();
+										final int n = labelImp.getStackIndex( 1, i + 1, frame + 1 );
+										labelImp.getStack().setProcessor( ip, n );
+									}
+								}
+							}
 						}
 						catch ( final RuntimeException e )
 						{
@@ -452,6 +509,10 @@ public class CWNT_ implements PlugIn
 		SimpleMultiThreading.startAndJoin( threads );
 		
 		allSpots.setVisible( true );
+		if ( genLabelImg )
+		{
+			labelImp.show();
+		}
 
 		logger.setProgress( 0 );
 		logger.setStatus( "" );

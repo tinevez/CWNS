@@ -142,7 +142,7 @@ public class CrownWearingSegmenter< T extends RealType< T > & NativeType< T >> e
 			System.out.println( "Spatial calibration: " + Util.printCoordinates( calibration ) );
 
 		}
-		final NucleiSplitter splitter = new NucleiSplitter( labeling, calibration );
+		final NucleiSplitter splitter = new NucleiSplitter( labeling, calibration, labelGenerator );
 		if ( !( splitter.checkInput() && splitter.process() ) )
 		{
 			IJ.error( "Problem with splitter: " + splitter.getErrorMessage() );

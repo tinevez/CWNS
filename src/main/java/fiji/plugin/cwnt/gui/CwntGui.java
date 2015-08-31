@@ -19,6 +19,7 @@ import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
@@ -276,6 +277,8 @@ public class CwntGui extends ConfigurationPanel
 
 	private JLabel lblEquation;
 
+	private JCheckBox chckbxGenLabels;
+
 	/*
 	 * CONSTRUCTOR
 	 */
@@ -357,6 +360,11 @@ public class CwntGui extends ConfigurationPanel
 	public int getSelectedIndex()
 	{
 		return tabbedPane.getSelectedIndex();
+	}
+
+	public boolean getGenLabelFlag()
+	{
+		return chckbxGenLabels.isSelected();
 	}
 
 	/*
@@ -845,6 +853,11 @@ public class CwntGui extends ConfigurationPanel
 					fireEvent( GO_BUTTON_PRESSED );
 				}
 			} );
+
+			chckbxGenLabels = new JCheckBox( "Generate label image." );
+			chckbxGenLabels.setFont( SMALL_LABEL_FONT );
+			chckbxGenLabels.setSelected( true );
+
 			final GroupLayout gl_panelRun = new GroupLayout( panelRun );
 			gl_panelRun.setHorizontalGroup(
 					gl_panelRun.createParallelGroup( Alignment.LEADING )
@@ -860,6 +873,10 @@ public class CwntGui extends ConfigurationPanel
 													.addGap( 137 )
 													.addComponent( btnGo, GroupLayout.PREFERRED_SIZE, 100, GroupLayout.PREFERRED_SIZE ) ) )
 									.addContainerGap() )
+							.addGroup( gl_panelRun.createSequentialGroup()
+									.addContainerGap()
+									.addComponent( chckbxGenLabels, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE )
+									.addGap( 10 ) )
 					);
 			gl_panelRun.setVerticalGroup(
 					gl_panelRun.createParallelGroup( Alignment.LEADING )
@@ -868,9 +885,11 @@ public class CwntGui extends ConfigurationPanel
 									.addComponent( lblLaunchComputation, GroupLayout.PREFERRED_SIZE, 31, GroupLayout.PREFERRED_SIZE )
 									.addGap( 29 )
 									.addComponent( lblEstimatedTime_1, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE )
-									.addGap( 40 )
+									.addGap( 68 )
+									.addComponent( chckbxGenLabels )
+									.addGap( 163 )
 									.addComponent( btnGo, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE )
-									.addGap( 370 ) )
+									.addGap( 156 ) )
 					);
 			panelRun.setLayout( gl_panelRun );
 
@@ -933,5 +952,4 @@ public class CwntGui extends ConfigurationPanel
 			}
 		} );
 	}
-
 }
