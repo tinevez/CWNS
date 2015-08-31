@@ -382,7 +382,7 @@ public class CWNT_ implements PlugIn
 			settings.dt = 1;
 		}
 
-		final double[] calibration = TMUtils.getSpatialCalibration( settings.imp );
+//		final double[] calibration = TMUtils.getSpatialCalibration( settings.imp );
 		final SpotCollection allSpots = new SpotCollection();
 
 		final CrownWearingSegmenterFactory factory = new CrownWearingSegmenterFactory();
@@ -479,10 +479,10 @@ public class CWNT_ implements PlugIn
 							}
 							final List< Spot > spots = segmenter.getResult();
 
-							TMUtils.translateSpots( spots,
-									settings.xstart * calibration[ 0 ],
-									settings.ystart * calibration[ 1 ],
-									settings.zstart * calibration[ 2 ] );
+//							TMUtils.translateSpots( spots,
+//									settings.xstart * calibration[ 0 ],
+//									settings.ystart * calibration[ 1 ],
+//									settings.zstart * calibration[ 2 ] );
 
 							// Tune time features
 							final double t = frame * settings.dt;
@@ -812,8 +812,8 @@ public class CWNT_ implements PlugIn
 	{
 
 //		File testImage = new File("E:/Users/JeanYves/Documents/Projects/BRajaseka/Data/Meta-nov7mdb18ssplus-embryo2-1.tif");
-		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/[XYZCT] registered pos4-timelapse-8bit_small crop.tif" );
-//		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/Meta-nov7mdb18ssplus-embryo2-4.tif" );
+//		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/[XYZCT] registered pos4-timelapse-8bit_small crop.tif" );
+		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/Meta-nov7mdb18ssplus-embryo2-4.tif" );
 
 		ImageJ.main( args );
 		final ImagePlus imp = IJ.openImage( testImage.getAbsolutePath() );
