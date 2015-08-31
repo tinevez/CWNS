@@ -310,7 +310,7 @@ public class CWNTPanel extends ConfigurationPanel
 			tabbedPane.addTab( "Intro", null, panelIntroduction, null );
 			panelIntroduction.setLayout( null );
 
-			final JLabel lblCrownwearingNucleiTracker = new JLabel( "Crown-Wearing Nuclei Tracker" );
+			final JLabel lblCrownwearingNucleiTracker = new JLabel( "Crown-Wearing Nuclei Segmenter" );
 			lblCrownwearingNucleiTracker.setFont( BIG_FONT );
 			lblCrownwearingNucleiTracker.setHorizontalAlignment( SwingConstants.CENTER );
 			lblCrownwearingNucleiTracker.setBounds( 10, 11, 268, 30 );

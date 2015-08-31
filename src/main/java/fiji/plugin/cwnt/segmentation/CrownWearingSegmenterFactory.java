@@ -40,14 +40,16 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 	 */
 
 	/** A string key identifying this factory. */
-	public static final String DETECTOR_KEY = "CWINS_DETECTOR";
+	public static final String DETECTOR_KEY = "CWNS_DETECTOR";
 
 	/** The pretty name of the target detector. */
-	public static final String NAME = "CWINS detector";
+	public static final String NAME = "CWNS";
 
 	/** An html information text. */
 	public static final String INFO_TEXT = "<html>" +
-			"<div align=\"justify\">" +
+			"<div align=\"justify\">" + 
+			"Crown-wearing nuclei segmenter. " +
+			"<p> " +
 			"This plugin allows the segmentation and tracking of bright blobs objects, " +
 			"typically nuclei imaged in 3D over time. " +
 			"<p> " +

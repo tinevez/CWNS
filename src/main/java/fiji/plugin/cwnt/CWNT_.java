@@ -79,7 +79,7 @@ public class CWNT_ implements PlugIn
 
 	private CwntGui gui;
 
-	public static final String PLUGIN_NAME = "Crown-Wearing Nuclei Tracker ß3";
+	public static final String PLUGIN_NAME = "Crown-Wearing Nuclei Segmenter ß3";
 
 	private int stepUpdateToPerform = Integer.MAX_VALUE;
 
@@ -248,8 +248,8 @@ public class CWNT_ implements PlugIn
 
 		final SimpleDateFormat ft = new SimpleDateFormat( "yyyy-MM-dd 'at' HH:mm:ss" );
 		Date dNow = new Date();
-		logger.log( "Crown-Wearing Nuclei Tracker\n" );
-		logger.log( "----------------------------\n" );
+		logger.log( "Crown-Wearing Nuclei Segmenter\n" );
+		logger.log( "------------------------------\n" );
 		logger.log( ft.format( dNow ) + "\n" );
 
 		final Settings settings = new Settings();
@@ -299,7 +299,7 @@ public class CWNT_ implements PlugIn
 		logger.setStatus( "" );
 		logger.setProgress( 0f );
 		dNow = new Date();
-		logger.log( "CWNT process finished.\n" );
+		logger.log( "CWNS process finished.\n" );
 		logger.log( ft.format( dNow ) + "\n" );
 		logger.log( "----------------------------\n" );
 

@@ -401,11 +401,7 @@ public class CwntGui extends ConfigurationPanel
 			{
 				return;
 			}
-			if ( Arrays.equals( params, oldParams ) ) { return; // We do not
-																// fire event if
-																// params did
-																// not change
-			}
+			if ( Arrays.equals( params, oldParams ) ) { return; }
 
 			oldParams = Arrays.copyOf( params, params.length );
 		}
@@ -435,7 +431,7 @@ public class CwntGui extends ConfigurationPanel
 			final JPanel panelIntroduction = new JPanel();
 			tabbedPane.addTab( "Intro", null, panelIntroduction, null );
 
-			final JLabel lblCrownwearingNucleiTracker = new JLabel( "Crown-Wearing Nuclei Tracker" );
+			final JLabel lblCrownwearingNucleiTracker = new JLabel( "Crown-Wearing Nuclei Segmenter" );
 			lblCrownwearingNucleiTracker.setFont( BIG_LABEL_FONT );
 			lblCrownwearingNucleiTracker.setHorizontalAlignment( SwingConstants.CENTER );
 
