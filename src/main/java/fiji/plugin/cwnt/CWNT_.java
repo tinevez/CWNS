@@ -19,6 +19,7 @@ import fiji.plugin.trackmate.visualization.TrackMateModelView;
 import fiji.plugin.trackmate.visualization.hyperstack.HyperStackDisplayer;
 import fiji.plugin.trackmate.visualization.hyperstack.SpotOverlay;
 import fiji.plugin.trackmate.visualization.hyperstack.TrackOverlay;
+import ij.CompositeImage;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
@@ -65,10 +66,6 @@ public class CWNT_ implements PlugIn
 
 	private NucleiMasker< ? extends IntegerType< ? >> algo;
 
-	private ImagePlus comp2;
-
-	private ImagePlus comp1;
-
 	private CwntGui gui;
 
 	public static final String PLUGIN_NAME = "Crown-Wearing Nuclei Tracker ß2";
@@ -82,6 +79,10 @@ public class CWNT_ implements PlugIn
 	private Logger logger;
 
 	private HyperStackDisplayer view;
+
+	private CompositeImage comp2;
+
+	private CompositeImage comp1;
 
 	@Override
 	public void run( final String arg )
@@ -521,7 +522,6 @@ public class CWNT_ implements PlugIn
 	@SuppressWarnings( { "rawtypes", "unchecked" } )
 	private void recomputeSampleWindows( final ImagePlus imp )
 	{
-
 		final ImagePlus snip = new Duplicator().run( imp, imp.getSlice(), imp.getSlice() );
 
 		// Copy to Imglib
@@ -574,26 +574,32 @@ public class CWNT_ implements PlugIn
 		floatStack.addSlice( "Mask", toFloatProcessor( M ) );
 		if ( comp2 == null )
 		{
-			comp2 = new ImagePlus( "Scaled derivatives", floatStack );
+			final ImagePlus imp2 = new ImagePlus( "Scaled derivatives", floatStack );
+			comp2 = new CompositeImage( imp2, CompositeImage.GRAYSCALE );
+			comp2.setDimensions( floatStack.getSize(), 1, 1 );
+			comp2.setOpenAsHyperStack( true );
 		}
 		else
 		{
-			comp2.setStack( floatStack );
+			comp2.setStack( floatStack, floatStack.getSize(), 1, 1 );
 		}
 		comp2.show();
-		comp2.getProcessor().resetMinAndMax();
 
 		final ImageStack tStack = new ImageStack( width, height );
 		tStack.addSlice( "Gaussian filtered", toFloatProcessor( F ) );
 		tStack.addSlice( "Anisotropic diffusion", toFloatProcessor( AD ) );
 		tStack.addSlice( "Masked image", toFloatProcessor( R ) );
+		ImagePlus imp1;
 		if ( comp1 == null )
 		{
-			comp1 = new ImagePlus( "Components", tStack );
+			imp1 = new ImagePlus( "Components", tStack );
+			comp1 = new CompositeImage( imp1, CompositeImage.GRAYSCALE );
+			comp1.setDimensions( tStack.getSize(), 1, 1 );
+			comp1.setOpenAsHyperStack( true );
 		}
 		else
 		{
-			comp1.setStack( tStack );
+			comp1.setStack( tStack, tStack.getSize(), 1, 1 );
 		}
 		comp1.show();
 
@@ -618,26 +624,18 @@ public class CWNT_ implements PlugIn
 		algo.execStep3();
 		algo.execStep4();
 
-		final int slice1 = comp1.getSlice();
-		comp1.setSlice( 1 );
-		comp1.setProcessor( toFloatProcessor( algo.getGaussianFilteredImage() ) );
-		comp1.setSlice( 2 );
-		comp1.setProcessor( toFloatProcessor( algo.getAnisotropicDiffusionImage() ) );
-		comp1.setSlice( 3 );
-		comp1.setProcessor( toFloatProcessor( algo.getResult() ) );
-		comp1.setSlice( slice1 );
+		final ImageStack s1 = comp1.getStack();
+		s1.setPixels( algo.getGaussianFilteredImage().update( null ).getCurrentStorageArray(), 1 );
+		s1.setPixels( algo.getAnisotropicDiffusionImage().update( null ).getCurrentStorageArray(), 2 );
+		s1.setPixels( algo.getResult().update( null ).getCurrentStorageArray(), 3 );
+		comp1.setStack( s1 );
 
-		final int slice2 = comp2.getSlice();
-		comp2.setSlice( 1 );
-		comp2.setProcessor( toFloatProcessor( algo.getGradientNorm() ) );
-		comp2.setSlice( 2 );
-		comp2.setProcessor( toFloatProcessor( algo.getLaplacianMagnitude() ) );
-		comp2.setSlice( 3 );
-		comp2.setProcessor( toFloatProcessor( algo.getHessianDeterminant() ) );
-		comp2.setSlice( 4 );
-		comp2.setProcessor( toFloatProcessor( algo.getMask() ) );
-		comp2.setSlice( slice2 );
-		comp2.getProcessor().setMinAndMax( 0, 2 );
+		final ImageStack s2 = comp2.getStack();
+		s2.setPixels( algo.getGradientNorm().update( null ).getCurrentStorageArray(), 1 );
+		s2.setPixels( algo.getLaplacianMagnitude().update( null ).getCurrentStorageArray(), 2 );
+		s2.setPixels( algo.getHessianDeterminant().update( null ).getCurrentStorageArray(), 3 );
+		s2.setPixels( algo.getMask().update( null ).getCurrentStorageArray(), 4 );
+		comp2.setStack( s2 );
 	}
 
 	private void paramStep2Changed()
@@ -647,24 +645,18 @@ public class CWNT_ implements PlugIn
 		algo.execStep3();
 		algo.execStep4();
 
-		final int slice1 = comp1.getSlice();
-		comp1.setSlice( 2 );
-		comp1.setProcessor( toFloatProcessor( algo.getAnisotropicDiffusionImage() ) );
-		comp1.setSlice( 3 );
-		comp1.setProcessor( toFloatProcessor( algo.getResult() ) );
-		comp1.setSlice( slice1 );
+		final ImageStack s1 = comp1.getStack();
+//		s1.setPixels( algo.getGaussianFilteredImage().update( null ).getCurrentStorageArray(), 1 );
+		s1.setPixels( algo.getAnisotropicDiffusionImage().update( null ).getCurrentStorageArray(), 2 );
+		s1.setPixels( algo.getResult().update( null ).getCurrentStorageArray(), 3 );
+		comp1.setStack( s1 );
 
-		final int slice2 = comp2.getSlice();
-		comp2.setSlice( 1 );
-		comp2.setProcessor( toFloatProcessor( algo.getGradientNorm() ) );
-		comp2.setSlice( 2 );
-		comp2.setProcessor( toFloatProcessor( algo.getLaplacianMagnitude() ) );
-		comp2.setSlice( 3 );
-		comp2.setProcessor( toFloatProcessor( algo.getHessianDeterminant() ) );
-		comp2.setSlice( 4 );
-		comp2.setProcessor( toFloatProcessor( algo.getMask() ) );
-		comp2.setSlice( slice2 );
-		comp2.getProcessor().setMinAndMax( 0, 2 );
+		final ImageStack s2 = comp2.getStack();
+		s2.setPixels( algo.getGradientNorm().update( null ).getCurrentStorageArray(), 1 );
+		s2.setPixels( algo.getLaplacianMagnitude().update( null ).getCurrentStorageArray(), 2 );
+		s2.setPixels( algo.getHessianDeterminant().update( null ).getCurrentStorageArray(), 3 );
+		s2.setPixels( algo.getMask().update( null ).getCurrentStorageArray(), 4 );
+		comp2.setStack( s2 );
 	}
 
 	private void paramStep3Changed()
@@ -673,22 +665,18 @@ public class CWNT_ implements PlugIn
 		algo.execStep3();
 		algo.execStep4();
 
-		final int slice1 = comp1.getSlice();
-		comp1.setSlice( 3 );
-		comp1.setProcessor( toFloatProcessor( algo.getResult() ) );
-		comp1.setSlice( slice1 );
+		final ImageStack s1 = comp1.getStack();
+//		s1.setPixels( algo.getGaussianFilteredImage().update( null ).getCurrentStorageArray(), 1 );
+//		s1.setPixels( algo.getAnisotropicDiffusionImage().update( null ).getCurrentStorageArray(), 2 );
+		s1.setPixels( algo.getResult().update( null ).getCurrentStorageArray(), 3 );
+		comp1.setStack( s1 );
 
-		final int slice2 = comp2.getSlice();
-		comp2.setSlice( 1 );
-		comp2.setProcessor( toFloatProcessor( algo.getGradientNorm() ) );
-		comp2.setSlice( 2 );
-		comp2.setProcessor( toFloatProcessor( algo.getLaplacianMagnitude() ) );
-		comp2.setSlice( 3 );
-		comp2.setProcessor( toFloatProcessor( algo.getHessianDeterminant() ) );
-		comp2.setSlice( 4 );
-		comp2.setProcessor( toFloatProcessor( algo.getMask() ) );
-		comp2.setSlice( slice2 );
-		comp2.getProcessor().setMinAndMax( 0, 2 );
+		final ImageStack s2 = comp2.getStack();
+		s2.setPixels( algo.getGradientNorm().update( null ).getCurrentStorageArray(), 1 );
+		s2.setPixels( algo.getLaplacianMagnitude().update( null ).getCurrentStorageArray(), 2 );
+		s2.setPixels( algo.getHessianDeterminant().update( null ).getCurrentStorageArray(), 3 );
+		s2.setPixels( algo.getMask().update( null ).getCurrentStorageArray(), 4 );
+		comp2.setStack( s2 );
 	}
 
 	private void paramStep4Changed()
@@ -696,16 +684,18 @@ public class CWNT_ implements PlugIn
 		algo.setParameters( gui.getParameters() );
 		algo.execStep4();
 
-		final int slice1 = comp1.getSlice();
-		comp1.setSlice( 3 );
-		comp1.setProcessor( toFloatProcessor( algo.getResult() ) );
-		comp1.setSlice( slice1 );
+		final ImageStack s1 = comp1.getStack();
+//		s1.setPixels( algo.getGaussianFilteredImage().update( null ).getCurrentStorageArray(), 1 );
+//		s1.setPixels( algo.getAnisotropicDiffusionImage().update( null ).getCurrentStorageArray(), 2 );
+		s1.setPixels( algo.getResult().update( null ).getCurrentStorageArray(), 3 );
+		comp1.setStack( s1 );
 
-		final int slice2 = comp2.getSlice();
-		comp2.setSlice( 4 );
-		comp2.setProcessor( toFloatProcessor( algo.getMask() ) );
-		comp2.setSlice( slice2 );
-		comp2.getProcessor().setMinAndMax( 0, 2 );
+		final ImageStack s2 = comp2.getStack();
+//		s2.setPixels( algo.getGradientNorm().update( null ).getCurrentStorageArray(), 1 );
+//		s2.setPixels( algo.getLaplacianMagnitude().update( null ).getCurrentStorageArray(), 2 );
+//		s2.setPixels( algo.getHessianDeterminant().update( null ).getCurrentStorageArray(), 3 );
+		s2.setPixels( algo.getMask().update( null ).getCurrentStorageArray(), 4 );
+		comp2.setStack( s2 );
 	}
 
 	/**
