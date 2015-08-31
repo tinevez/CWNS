@@ -94,7 +94,7 @@ public class CWNT_ implements PlugIn
 			return;
 
 		// Create Panel silently
-		gui = new CwntGui();
+		gui = new CwntGui( imp );
 		logger = Logger.DEFAULT_LOGGER;
 
 		// Add listeners
@@ -119,7 +119,7 @@ public class CWNT_ implements PlugIn
 		} );
 
 		final JFrame frame = new JFrame( PLUGIN_NAME );
-		frame.setSize( 300, 400 );
+		frame.setSize( 400, 600 );
 		frame.addWindowListener( new WindowListener()
 		{
 			@Override

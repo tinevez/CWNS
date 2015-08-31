@@ -1,5 +1,7 @@
 package fiji.plugin.cwnt.gui;
 
+import ij.ImagePlus;
+
 import java.awt.BorderLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
@@ -250,9 +252,10 @@ public class CwntGui extends ConfigurationPanel
 	 * CONSTRUCTOR
 	 */
 
-	public CwntGui()
+	public CwntGui( final ImagePlus imp )
 	{
 		initGUI();
+		labelTargetImage.setText( imp.getTitle() );
 	}
 
 	/*
@@ -417,7 +420,7 @@ public class CwntGui extends ConfigurationPanel
 			lblTargetImage.setBounds( 10, 52, 325, 19 );
 			panelIntroduction.add( lblTargetImage );
 
-			labelTargetImage = new JLabel( "name goes there" ); // TODO
+			labelTargetImage = new JLabel();
 			labelTargetImage.setHorizontalAlignment( SwingConstants.CENTER );
 			labelTargetImage.setFont( MEDIUM_LABEL_FONT );
 			labelTargetImage.setBounds( 10, 82, 325, 19 );
@@ -528,6 +531,7 @@ public class CwntGui extends ConfigurationPanel
 				panelParams1.add( lblGaussianGradient );
 
 				gaussGradSigmaText = new JTextField();
+				gaussGradSigmaText.setFont( TEXT_FIELD_FONT );
 				gaussGradSigmaText.setHorizontalAlignment( SwingConstants.CENTER );
 				gaussGradSigmaText.setText( "" + params[ 3 ] );
 				gaussGradSigmaText.setBounds( 275, 416, 60, 23 );
