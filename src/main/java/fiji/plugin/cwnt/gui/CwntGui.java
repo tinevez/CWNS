@@ -31,16 +31,7 @@ import javax.swing.event.ChangeListener;
 
 import fiji.plugin.cwnt.segmentation.CrownWearingSegmenterFactory;
 import fiji.plugin.cwnt.segmentation.NucleiMasker;
-import fiji.plugin.trackmate.Model;
-import fiji.plugin.trackmate.Settings;
-import fiji.plugin.trackmate.TrackMate;
 import fiji.plugin.trackmate.gui.ConfigurationPanel;
-import fiji.plugin.trackmate.gui.DisplaySettingsEvent;
-import fiji.plugin.trackmate.gui.DisplaySettingsListener;
-import fiji.plugin.trackmate.gui.panels.ActionChooserPanel;
-import fiji.plugin.trackmate.gui.panels.ConfigureViewsPanel;
-import fiji.plugin.trackmate.providers.ActionProvider;
-import fiji.plugin.trackmate.visualization.TrackMateModelView;
 
 public class CwntGui extends ConfigurationPanel
 {
@@ -896,37 +887,37 @@ public class CwntGui extends ConfigurationPanel
 		}
 	}
 
-	public void setModelAndView( final Model model, final TrackMateModelView view )
-	{
-
-		if ( tabbedPane.getTabCount() > 4 )
-		{
-			tabbedPane.removeTabAt( 4 );
-		}
-		final ConfigureViewsPanel displayerPanel = new ConfigureViewsPanel( model );
-		displayerPanel.getTrackSchemeButton().setVisible( false );
-		displayerPanel.addDisplaySettingsChangeListener( new DisplaySettingsListener()
-		{
-			@Override
-			public void displaySettingsChanged( final DisplaySettingsEvent event )
-			{
-				view.setDisplaySettings( event.getKey(), event.getNewValue() );
-			}
-		} );
-
-		tabbedPane.addTab( "Display settings", null, displayerPanel, null );
-
-		if ( tabbedPane.getTabCount() > 5 )
-		{
-			tabbedPane.removeTabAt( 5 );
-		}
-		final Settings settings = new Settings();
-//		settings.setFrom( imp );
-		final TrackMate trackmate = new TrackMate( model, settings );
-		final ActionChooserPanel actionPanel = new ActionChooserPanel( new ActionProvider(), trackmate, null );
-		tabbedPane.addTab( "Actions", null, actionPanel.getPanel(), null );
-
-	}
+//	public void setModelAndView( final Model model, final TrackMateModelView view )
+//	{
+//
+//		if ( tabbedPane.getTabCount() > 4 )
+//		{
+//			tabbedPane.removeTabAt( 4 );
+//		}
+//		final ConfigureViewsPanel displayerPanel = new ConfigureViewsPanel( model );
+//		displayerPanel.getTrackSchemeButton().setVisible( false );
+//		displayerPanel.addDisplaySettingsChangeListener( new DisplaySettingsListener()
+//		{
+//			@Override
+//			public void displaySettingsChanged( final DisplaySettingsEvent event )
+//			{
+//				view.setDisplaySettings( event.getKey(), event.getNewValue() );
+//			}
+//		} );
+//
+//		tabbedPane.addTab( "Display settings", null, displayerPanel, null );
+//
+//		if ( tabbedPane.getTabCount() > 5 )
+//		{
+//			tabbedPane.removeTabAt( 5 );
+//		}
+//		final Settings settings = new Settings();
+////		settings.setFrom( imp );
+//		final TrackMate trackmate = new TrackMate( model, settings );
+//		final ActionChooserPanel actionPanel = new ActionChooserPanel( new ActionProvider(), trackmate, null );
+//		tabbedPane.addTab( "Actions", null, actionPanel.getPanel(), null );
+//
+//	}
 
 	private void link( final DoubleJSlider slider, final JTextField text )
 	{

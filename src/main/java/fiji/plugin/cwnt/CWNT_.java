@@ -7,19 +7,23 @@ import fiji.plugin.cwnt.segmentation.LabelToRGB;
 import fiji.plugin.cwnt.segmentation.NucleiMasker;
 import fiji.plugin.trackmate.Logger;
 import fiji.plugin.trackmate.Model;
-import fiji.plugin.trackmate.SelectionModel;
 import fiji.plugin.trackmate.Settings;
 import fiji.plugin.trackmate.Spot;
 import fiji.plugin.trackmate.SpotCollection;
-import fiji.plugin.trackmate.io.TmXmlWriter;
-import fiji.plugin.trackmate.tracking.SpotTracker;
+import fiji.plugin.trackmate.TrackMate;
+import fiji.plugin.trackmate.features.edges.EdgeAnalyzer;
+import fiji.plugin.trackmate.features.spot.SpotAnalyzerFactory;
+import fiji.plugin.trackmate.features.track.TrackAnalyzer;
+import fiji.plugin.trackmate.gui.GuiUtils;
+import fiji.plugin.trackmate.gui.TrackMateGUIController;
+import fiji.plugin.trackmate.gui.descriptors.ConfigureViewsDescriptor;
+import fiji.plugin.trackmate.providers.EdgeAnalyzerProvider;
+import fiji.plugin.trackmate.providers.SpotAnalyzerProvider;
+import fiji.plugin.trackmate.providers.TrackAnalyzerProvider;
 import fiji.plugin.trackmate.tracking.TrackerKeys;
 import fiji.plugin.trackmate.tracking.sparselap.SparseLAPTrackerFactory;
 import fiji.plugin.trackmate.util.TMUtils;
-import fiji.plugin.trackmate.visualization.TrackMateModelView;
 import fiji.plugin.trackmate.visualization.hyperstack.HyperStackDisplayer;
-import fiji.plugin.trackmate.visualization.hyperstack.SpotOverlay;
-import fiji.plugin.trackmate.visualization.hyperstack.TrackOverlay;
 import ij.CompositeImage;
 import ij.IJ;
 import ij.ImageJ;
@@ -34,7 +38,6 @@ import ij.process.ImageProcessor;
 
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
@@ -44,8 +47,6 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -66,6 +67,7 @@ import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.real.FloatType;
 
+@SuppressWarnings( "deprecation" )
 public class CWNT_ implements PlugIn
 {
 
@@ -77,17 +79,15 @@ public class CWNT_ implements PlugIn
 
 	private CwntGui gui;
 
-	public static final String PLUGIN_NAME = "Crown-Wearing Nuclei Tracker ß2";
+	public static final String PLUGIN_NAME = "Crown-Wearing Nuclei Tracker ß3";
 
 	private int stepUpdateToPerform = Integer.MAX_VALUE;
 
 	private final DisplayUpdater updater = new DisplayUpdater();
 
-	private Model model;
+//	private Model model;
 
 	private Logger logger;
-
-	private HyperStackDisplayer view;
 
 	private CompositeImage comp2;
 
@@ -255,11 +255,46 @@ public class CWNT_ implements PlugIn
 		final Settings settings = new Settings();
 		settings.setFrom( imp );
 
+		settings.clearSpotAnalyzerFactories();
+		final SpotAnalyzerProvider spotAnalyzerProvider = new SpotAnalyzerProvider();
+		final List< String > spotAnalyzerKeys = spotAnalyzerProvider.getKeys();
+		for ( final String key : spotAnalyzerKeys )
+		{
+			final SpotAnalyzerFactory< ? > spotFeatureAnalyzer = spotAnalyzerProvider.getFactory( key );
+			settings.addSpotAnalyzerFactory( spotFeatureAnalyzer );
+		}
+
+		settings.clearEdgeAnalyzers();
+		final EdgeAnalyzerProvider edgeAnalyzerProvider = new EdgeAnalyzerProvider();
+		final List< String > edgeAnalyzerKeys = edgeAnalyzerProvider.getKeys();
+		for ( final String key : edgeAnalyzerKeys )
+		{
+			final EdgeAnalyzer edgeAnalyzer = edgeAnalyzerProvider.getFactory( key );
+			settings.addEdgeAnalyzer( edgeAnalyzer );
+		}
+
+		settings.clearTrackAnalyzers();
+		final TrackAnalyzerProvider trackAnalyzerProvider = new TrackAnalyzerProvider();
+		final List< String > trackAnalyzerKeys = trackAnalyzerProvider.getKeys();
+		for ( final String key : trackAnalyzerKeys )
+		{
+			final TrackAnalyzer trackAnalyzer = trackAnalyzerProvider.getFactory( key );
+			settings.addTrackAnalyzer( trackAnalyzer );
+		}
+
 		final Model model = execSegmentation( settings );
-		launchDisplayer( model, imp );
+
+		final TrackMate trackmate = new TrackMate( model, settings );
+		trackmate.computeSpotFeatures( true );
+
 		execTracking( model, settings );
-		saveResults( model, settings );
-		gui.setModelAndView( model, view );
+
+		trackmate.computeTrackFeatures( true );
+		trackmate.computeEdgeFeatures( true );
+
+		launchDisplayer( model, settings );
+//		saveResults( model, settings );
+//		gui.setModelAndView( model, view );
 
 		logger.setStatus( "" );
 		logger.setProgress( 0f );
@@ -270,39 +305,40 @@ public class CWNT_ implements PlugIn
 
 	}
 
-	private void saveResults( final Model model, final Settings settings )
-	{
-
-		final ImagePlus imp = settings.imp;
-		final String dir = imp.getOriginalFileInfo().directory;
-		String name = imp.getOriginalFileInfo().fileName;
-		name = name.substring( 0, name.lastIndexOf( '.' ) ) + ".xml";
-		final File file = new File( dir, name );
-
-		logger.log( "Saving to file " + file.getAbsolutePath() + "...\n" );
-		final TmXmlWriter writer = new TmXmlWriter( file );
-		writer.appendSettings( settings );
-		writer.appendModel( model );
-		try
-		{
-			writer.writeToFile();
-		}
-		catch ( final FileNotFoundException e )
-		{
-			e.printStackTrace();
-		}
-		catch ( final IOException e )
-		{
-			e.printStackTrace();
-		}
-		logger.log( "Saving done.\n" );
-	}
+//	private void saveResults( final Model model, final Settings settings )
+//	{
+//
+//		final ImagePlus imp = settings.imp;
+//		final String dir = imp.getOriginalFileInfo().directory;
+//		String name = imp.getOriginalFileInfo().fileName;
+//		name = name.substring( 0, name.lastIndexOf( '.' ) ) + ".xml";
+//		final File file = new File( dir, name );
+//
+//		logger.log( "Saving to file " + file.getAbsolutePath() + "...\n" );
+//		final TmXmlWriter writer = new TmXmlWriter( file );
+//		writer.appendSettings( settings );
+//		writer.appendModel( model );
+//		try
+//		{
+//			writer.writeToFile();
+//		}
+//		catch ( final FileNotFoundException e )
+//		{
+//			e.printStackTrace();
+//		}
+//		catch ( final IOException e )
+//		{
+//			e.printStackTrace();
+//		}
+//		logger.log( "Saving done.\n" );
+//	}
 
 	private void execTracking( final Model model, final Settings settings )
 	{
 		final long start = System.currentTimeMillis();
 
 		final SparseLAPTrackerFactory trackerFactory = new SparseLAPTrackerFactory();
+		settings.trackerFactory = trackerFactory;
 
 		// Prepare tracking settings
 		final Map< String, Object > trackerSettings = trackerFactory.getDefaultSettings();
@@ -330,24 +366,15 @@ public class CWNT_ implements PlugIn
 		logger.log( "Performing track linking...\n" );
 		logger.setStatus( "Tracking..." );
 
-		final SpotTracker tracker = trackerFactory.create( model.getSpots(), trackerSettings );
-
-		tracker.setLogger( logger );
-		tracker.setNumThreads( 1 ); // For memory preservation
-		if ( !( tracker.checkInput() && tracker.process() ) )
-		{
-			logger.error( tracker.getErrorMessage() );
-			return;
-		}
-
-		model.setTracks( tracker.getResult(), true );
+		final TrackMate trackmate = new TrackMate( model, settings );
+		trackmate.execTracking();
 
 		final long end = System.currentTimeMillis();
 		logger.log( String.format( "Track linking completed in %.1f s.\n", ( ( end - start ) / 1e3 ) ) );
 		logger.log( String.format( "Found %d tracks.\n", model.getTrackModel().nTracks( true ) ) );
 	}
 
-	@SuppressWarnings( { "rawtypes", "unchecked", "deprecation" } )
+	@SuppressWarnings( { "rawtypes", "unchecked" } )
 	private Model execSegmentation( final Settings settings )
 	{
 		if ( settings.dt == 0 )
@@ -440,6 +467,9 @@ public class CWNT_ implements PlugIn
 							final CrownWearingSegmenter segmenter = factory.getDetector( null, frame );
 							segmenter.setNumThreads( threadsPerFrame );
 
+							if ( wasInterrupted() )
+								return;
+
 							// Exec
 							if ( !( segmenter.checkInput() && segmenter.process() ) )
 							{
@@ -511,132 +541,43 @@ public class CWNT_ implements PlugIn
 		allSpots.setVisible( true );
 		if ( genLabelImg )
 		{
+			labelImp.setOpenAsHyperStack( true );
 			labelImp.show();
 		}
 
 		logger.setProgress( 0 );
 		logger.setStatus( "" );
 
-		model = new Model();
+		final Model model = new Model();
 		model.setSpots( allSpots, false );
 		model.setPhysicalUnits( settings.imp.getCalibration().getUnit(), settings.imp.getCalibration().getTimeUnit() );
+		model.setLogger( logger );
 
 		return model;
-
 	}
 
-	private void launchDisplayer( final Model model, final ImagePlus imp )
+	private void launchDisplayer( final Model model, final Settings settings )
 	{
-		view = createLocalSliceDisplayer( model, imp );
-		logger.log( "Rendering segmentation results...\n" );
-		view.setDisplaySettings( TrackMateModelView.KEY_TRACK_DISPLAY_MODE, TrackMateModelView.TRACK_DISPLAY_MODE_LOCAL_QUICK );
-		view.render();
-		logger.log( "Rendering done.\n" );
+//		view = createLocalSliceDisplayer( model, imp );
+//		logger.log( "Rendering segmentation results...\n" );
+//		view.setDisplaySettings( TrackMateModelView.KEY_TRACK_DISPLAY_MODE, TrackMateModelView.TRACK_DISPLAY_MODE_LOCAL_QUICK );
+//		view.render();
+//		logger.log( "Rendering done.\n" );
 
-	}
+		final TrackMate trackmate = new TrackMate( model, settings );
+		final TrackMateGUIController controller = new TrackMateGUIController( trackmate );
+		controller.setGUIStateString( ConfigureViewsDescriptor.KEY );
 
-	public static HyperStackDisplayer createLocalSliceDisplayer( final Model model, final ImagePlus imp )
-	{
-
-		return new HyperStackDisplayer( model, new SelectionModel( model ), imp )
+		// Setup and render views
+		final HyperStackDisplayer view = new HyperStackDisplayer( model, controller.getSelectionModel(), settings.imp );
+		final Map< String, Object > displaySettings = controller.getGuimodel().getDisplaySettings();
+		controller.getGuimodel().addView( view );
+		for ( final String key : displaySettings.keySet() )
 		{
-
-			@SuppressWarnings( "serial" )
-			@Override
-			protected SpotOverlay createSpotOverlay()
-			{
-
-				return new SpotOverlay( model, imp, displaySettings )
-				{
-					@SuppressWarnings( "unused" )
-					public void drawSpot( final Graphics2D g2d, final Spot spot, final float zslice,
-							final int xcorner, final int ycorner, final float magnification )
-					{
-
-						final double x = spot.getFeature( Spot.POSITION_X );
-						final double y = spot.getFeature( Spot.POSITION_Y );
-						final double z = spot.getFeature( Spot.POSITION_Z );
-						final double dz2 = ( z - zslice ) * ( z - zslice );
-						final double radiusRatio = ( Float ) displaySettings.get( TrackMateModelView.KEY_SPOT_RADIUS_RATIO );
-						final double radius = spot.getFeature( Spot.RADIUS ) * radiusRatio;
-						if ( dz2 >= radius * radius )
-							return;
-
-						// In pixel units
-						final double xp = x / calibration[ 0 ];
-						final double yp = y / calibration[ 1 ];
-						// Scale to image zoom
-						final double xs = ( xp - xcorner ) * magnification;
-						final double ys = ( yp - ycorner ) * magnification;
-
-						final double apparentRadius = ( float ) ( Math.sqrt( radius * radius - dz2 ) / calibration[ 0 ] * magnification );
-						g2d.drawOval(
-								( int ) Math.round( xs - apparentRadius ),
-								( int ) Math.round( ys - apparentRadius ),
-								( int ) Math.round( 2 * apparentRadius ),
-								( int ) Math.round( 2 * apparentRadius ) );
-						final boolean spotNameVisible = ( Boolean ) displaySettings.get( TrackMateModelView.KEY_DISPLAY_SPOT_NAMES );
-						if ( spotNameVisible )
-						{
-							final String str = spot.toString();
-							final int xindent = fm.stringWidth( str ) / 2;
-							final int yindent = fm.getAscent() / 2;
-							g2d.drawString(
-									spot.toString(),
-									( int ) xs - xindent,
-									( int ) ys + yindent );
-						}
-					}
-				};
-			}
-
-			@SuppressWarnings( "serial" )
-			@Override
-			protected TrackOverlay createTrackOverlay()
-			{
-
-				return new TrackOverlay( model, imp, displaySettings )
-				{
-
-					@Override
-					protected void drawEdge( final Graphics2D g2d, final Spot source, final Spot target, final int xcorner, final int ycorner, final double magnification )
-					{
-						// Find x & y in physical coordinates
-						final double x0i = source.getFeature( Spot.POSITION_X );
-						final double y0i = source.getFeature( Spot.POSITION_Y );
-						final double z0i = source.getFeature( Spot.POSITION_Z );
-						final double x1i = target.getFeature( Spot.POSITION_X );
-						final double y1i = target.getFeature( Spot.POSITION_Y );
-						final double z1i = target.getFeature( Spot.POSITION_Z );
-						// In pixel units
-						final double x0p = x0i / calibration[ 0 ];
-						final double y0p = y0i / calibration[ 1 ];
-						final double z0p = z0i / calibration[ 2 ];
-						final double x1p = x1i / calibration[ 0 ];
-						final double y1p = y1i / calibration[ 1 ];
-						final double z1p = z1i / calibration[ 2 ];
-						// Check if we are nearing their plane
-						final int czp = ( imp.getSlice() - 1 );
-						if ( Math.abs( czp - z1p ) > 3 && Math.abs( czp - z0p ) > 3 ) { return; }
-						// Scale to image zoom
-						final double x0s = ( x0p - xcorner ) * magnification;
-						final double y0s = ( y0p - ycorner ) * magnification;
-						final double x1s = ( x1p - xcorner ) * magnification;
-						final double y1s = ( y1p - ycorner ) * magnification;
-						// Round
-						final int x0 = ( int ) Math.round( x0s );
-						final int y0 = ( int ) Math.round( y0s );
-						final int x1 = ( int ) Math.round( x1s );
-						final int y1 = ( int ) Math.round( y1s );
-
-						g2d.drawLine( x0, y0, x1, y1 );
-					}
-				};
-
-			}
-
-		};
-
+			view.setDisplaySettings( key, displaySettings.get( key ) );
+		}
+		view.render();
+		GuiUtils.positionWindow( controller.getGUI(), settings.imp.getWindow() );
 	}
 
 	/*
@@ -871,7 +812,8 @@ public class CWNT_ implements PlugIn
 	{
 
 //		File testImage = new File("E:/Users/JeanYves/Documents/Projects/BRajaseka/Data/Meta-nov7mdb18ssplus-embryo2-1.tif");
-		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/Meta-nov7mdb18ssplus-embryo2-4.tif" );
+		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/[XYZCT] registered pos4-timelapse-8bit_small crop.tif" );
+//		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/Meta-nov7mdb18ssplus-embryo2-4.tif" );
 
 		ImageJ.main( args );
 		final ImagePlus imp = IJ.openImage( testImage.getAbsolutePath() );
