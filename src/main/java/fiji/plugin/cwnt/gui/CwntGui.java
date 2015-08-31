@@ -15,11 +15,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import javax.swing.GroupLayout;
+import javax.swing.GroupLayout.Alignment;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
+import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.SwingConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -407,29 +410,46 @@ public class CwntGui extends ConfigurationPanel
 		{
 			final JPanel panelIntroduction = new JPanel();
 			tabbedPane.addTab( "Intro", null, panelIntroduction, null );
-			panelIntroduction.setLayout( null );
 
 			final JLabel lblCrownwearingNucleiTracker = new JLabel( "Crown-Wearing Nuclei Tracker" );
 			lblCrownwearingNucleiTracker.setFont( BIG_LABEL_FONT );
 			lblCrownwearingNucleiTracker.setHorizontalAlignment( SwingConstants.CENTER );
-			lblCrownwearingNucleiTracker.setBounds( 10, 11, 325, 30 );
-			panelIntroduction.add( lblCrownwearingNucleiTracker );
 
 			final JLabel lblTargetImage = new JLabel( "Target image:" );
 			lblTargetImage.setFont( MEDIUM_LABEL_FONT );
-			lblTargetImage.setBounds( 10, 52, 325, 19 );
-			panelIntroduction.add( lblTargetImage );
 
 			labelTargetImage = new JLabel();
 			labelTargetImage.setHorizontalAlignment( SwingConstants.CENTER );
 			labelTargetImage.setFont( MEDIUM_LABEL_FONT );
-			labelTargetImage.setBounds( 10, 82, 325, 19 );
-			panelIntroduction.add( labelTargetImage );
 
 			final JLabel labelIntro = new JLabel( CrownWearingSegmenterFactory.INFO_TEXT );
 			labelIntro.setFont( SMALL_LABEL_FONT.deriveFont( 11f ) );
-			labelIntro.setBounds( 10, 112, 325, 358 );
-			panelIntroduction.add( labelIntro );
+			final GroupLayout gl_panelIntroduction = new GroupLayout( panelIntroduction );
+			gl_panelIntroduction.setHorizontalGroup(
+					gl_panelIntroduction.createParallelGroup( Alignment.TRAILING )
+							.addGroup( gl_panelIntroduction.createSequentialGroup()
+									.addGap( 10 )
+									.addGroup( gl_panelIntroduction.createParallelGroup( Alignment.TRAILING )
+											.addComponent( labelIntro, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 413, Short.MAX_VALUE )
+											.addComponent( labelTargetImage, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 413, Short.MAX_VALUE )
+											.addComponent( lblTargetImage, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 413, Short.MAX_VALUE )
+											.addComponent( lblCrownwearingNucleiTracker, GroupLayout.DEFAULT_SIZE, 413, Short.MAX_VALUE ) )
+									.addContainerGap() )
+					);
+			gl_panelIntroduction.setVerticalGroup(
+					gl_panelIntroduction.createParallelGroup( Alignment.LEADING )
+							.addGroup( gl_panelIntroduction.createSequentialGroup()
+									.addGap( 11 )
+									.addComponent( lblCrownwearingNucleiTracker, GroupLayout.PREFERRED_SIZE, 30, GroupLayout.PREFERRED_SIZE )
+									.addGap( 11 )
+									.addComponent( lblTargetImage )
+									.addGap( 11 )
+									.addComponent( labelTargetImage )
+									.addPreferredGap( ComponentPlacement.UNRELATED )
+									.addComponent( labelIntro, GroupLayout.DEFAULT_SIZE, 435, Short.MAX_VALUE )
+									.addContainerGap() )
+					);
+			panelIntroduction.setLayout( gl_panelIntroduction );
 		}
 
 		final JPanel panelParams1 = new JPanel();
