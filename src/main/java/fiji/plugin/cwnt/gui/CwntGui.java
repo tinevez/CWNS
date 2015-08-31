@@ -251,6 +251,12 @@ public class CwntGui extends ConfigurationPanel
 
 	private JLabel labelTargetImage;
 
+	private JLabel lblGaussianFilter;
+
+	private JLabel lblNumberOfIterations;
+
+	private JLabel lblGradientDiffusionThreshold;
+
 	/*
 	 * CONSTRUCTOR
 	 */
@@ -455,34 +461,23 @@ public class CwntGui extends ConfigurationPanel
 		final JPanel panelParams1 = new JPanel();
 		{
 			tabbedPane.addTab( "Param set 1", null, panelParams1, null );
-			panelParams1.setLayout( null );
 
 			final JLabel lblNewLabel = new JLabel( "Parameter set 1" );
 			lblNewLabel.setFont( BIG_LABEL_FONT );
 			lblNewLabel.setHorizontalAlignment( SwingConstants.CENTER );
-			lblNewLabel.setBounds( 10, 11, 325, 29 );
-			panelParams1.add( lblNewLabel );
 
 			final JLabel lblFiltering = new JLabel( "1. Filtering" );
 			lblFiltering.setFont( MEDIUM_LABEL_FONT );
-			lblFiltering.setBounds( 10, 64, 325, 29 );
-			panelParams1.add( lblFiltering );
 
 			{
-				final JLabel lblGaussianFilter = new JLabel( "Gaussian filter \u03C3:" );
+				lblGaussianFilter = new JLabel( "Gaussian filter \u03C3:" );
 				lblGaussianFilter.setFont( SMALL_LABEL_FONT );
-				lblGaussianFilter.setBounds( 10, 104, 325, 14 );
-				panelParams1.add( lblGaussianFilter );
 
 				gaussFiltSigmaSlider = new DoubleJSlider( 0, 5 * scale, ( int ) ( params[ 0 ] * scale ), scale );
-				gaussFiltSigmaSlider.setBounds( 10, 129, 255, 23 );
-				panelParams1.add( gaussFiltSigmaSlider );
 
 				gaussFiltSigmaText = new JTextField( "" + params[ 0 ] );
 				gaussFiltSigmaText.setHorizontalAlignment( SwingConstants.CENTER );
-				gaussFiltSigmaText.setBounds( 275, 129, 60, 23 );
 				gaussFiltSigmaText.setFont( TEXT_FIELD_FONT );
-				panelParams1.add( gaussFiltSigmaText );
 
 				link( gaussFiltSigmaSlider, gaussFiltSigmaText );
 				gaussFiltSigmaSlider.addChangeListener( step1ChangeListener );
@@ -491,25 +486,17 @@ public class CwntGui extends ConfigurationPanel
 
 			final JLabel lblAnisotropicDiffusion = new JLabel( "2. Anisotropic diffusion" );
 			lblAnisotropicDiffusion.setFont( MEDIUM_LABEL_FONT );
-			lblAnisotropicDiffusion.setBounds( 10, 181, 325, 29 );
-			panelParams1.add( lblAnisotropicDiffusion );
 
 			{
-				final JLabel lblNumberOfIterations = new JLabel( "Number of iterations:" );
+				lblNumberOfIterations = new JLabel( "Number of iterations:" );
 				lblNumberOfIterations.setFont( SMALL_LABEL_FONT );
-				lblNumberOfIterations.setBounds( 10, 221, 325, 14 );
-				panelParams1.add( lblNumberOfIterations );
 
 				aniDiffNIterText = new JTextField();
 				aniDiffNIterText.setHorizontalAlignment( SwingConstants.CENTER );
 				aniDiffNIterText.setText( "" + params[ 1 ] );
 				aniDiffNIterText.setFont( TEXT_FIELD_FONT );
-				aniDiffNIterText.setBounds( 275, 246, 60, 23 );
-				panelParams1.add( aniDiffNIterText );
 
 				aniDiffNIterSlider = new DoubleJSlider( 1, 10, ( int ) params[ 1 ], 1 );
-				aniDiffNIterSlider.setBounds( 10, 246, 255, 23 );
-				panelParams1.add( aniDiffNIterSlider );
 
 				link( aniDiffNIterSlider, aniDiffNIterText );
 				aniDiffNIterSlider.addChangeListener( step2ChangeListener );
@@ -518,21 +505,15 @@ public class CwntGui extends ConfigurationPanel
 			}
 
 			{
-				final JLabel lblGradientDiffusionThreshold = new JLabel( "Gradient diffusion threshold \u03BA:" );
+				lblGradientDiffusionThreshold = new JLabel( "Gradient diffusion threshold \u03BA:" );
 				lblGradientDiffusionThreshold.setFont( SMALL_LABEL_FONT );
-				lblGradientDiffusionThreshold.setBounds( 10, 280, 325, 14 );
-				panelParams1.add( lblGradientDiffusionThreshold );
 
 				aniDiffKappaText = new JTextField();
 				aniDiffKappaText.setHorizontalAlignment( SwingConstants.CENTER );
 				aniDiffKappaText.setText( "" + params[ 2 ] );
 				aniDiffKappaText.setFont( TEXT_FIELD_FONT );
-				aniDiffKappaText.setBounds( 275, 305, 60, 23 );
-				panelParams1.add( aniDiffKappaText );
 
 				aniDiffKappaSlider = new DoubleJSlider( 1, 100, ( int ) params[ 2 ], 1 );
-				aniDiffKappaSlider.setBounds( 10, 305, 255, 23 );
-				panelParams1.add( aniDiffKappaSlider );
 
 				link( aniDiffKappaSlider, aniDiffKappaText );
 				aniDiffKappaSlider.addChangeListener( step2ChangeListener );
@@ -541,27 +522,88 @@ public class CwntGui extends ConfigurationPanel
 
 			final JLabel lblDerivativesCalculation = new JLabel( "3. Derivatives calculation" );
 			lblDerivativesCalculation.setFont( new Font( "Arial", Font.PLAIN, 16 ) );
-			lblDerivativesCalculation.setBounds( 10, 351, 325, 29 );
-			panelParams1.add( lblDerivativesCalculation );
 
 			{
 				final JLabel lblGaussianGradient = new JLabel( "Gaussian gradient \u03C3:" );
 				lblGaussianGradient.setFont( new Font( "Arial", Font.PLAIN, 12 ) );
-				lblGaussianGradient.setBounds( 10, 391, 325, 14 );
-				panelParams1.add( lblGaussianGradient );
 
 				gaussGradSigmaText = new JTextField();
 				gaussGradSigmaText.setFont( TEXT_FIELD_FONT );
 				gaussGradSigmaText.setHorizontalAlignment( SwingConstants.CENTER );
 				gaussGradSigmaText.setText( "" + params[ 3 ] );
-				gaussGradSigmaText.setBounds( 275, 416, 60, 23 );
-				panelParams1.add( gaussGradSigmaText );
 
 				gaussGradSigmaSlider = new DoubleJSlider( 0, 5 * scale, ( int ) ( params[ 3 ] * scale ), scale );
-				gaussGradSigmaSlider.setBounds( 10, 416, 255, 23 );
-				panelParams1.add( gaussGradSigmaSlider );
 
 				link( gaussGradSigmaSlider, gaussGradSigmaText );
+				final GroupLayout gl_panelParams1 = new GroupLayout( panelParams1 );
+				gl_panelParams1.setHorizontalGroup(
+						gl_panelParams1.createParallelGroup( Alignment.LEADING )
+								.addGroup( gl_panelParams1.createSequentialGroup()
+										.addGap( 10 )
+										.addGroup( gl_panelParams1.createParallelGroup( Alignment.LEADING )
+												.addComponent( lblGradientDiffusionThreshold, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE )
+												.addGroup( Alignment.TRAILING, gl_panelParams1.createSequentialGroup()
+														.addComponent( gaussFiltSigmaSlider, GroupLayout.DEFAULT_SIZE, 297, Short.MAX_VALUE )
+														.addPreferredGap( ComponentPlacement.RELATED )
+														.addComponent( gaussFiltSigmaText, GroupLayout.PREFERRED_SIZE, 60, GroupLayout.PREFERRED_SIZE ) )
+												.addGroup( Alignment.TRAILING, gl_panelParams1.createSequentialGroup()
+														.addComponent( aniDiffNIterSlider, GroupLayout.DEFAULT_SIZE, 297, Short.MAX_VALUE )
+														.addPreferredGap( ComponentPlacement.RELATED )
+														.addComponent( aniDiffNIterText, GroupLayout.PREFERRED_SIZE, 60, GroupLayout.PREFERRED_SIZE ) )
+												.addGroup( Alignment.TRAILING, gl_panelParams1.createSequentialGroup()
+														.addComponent( aniDiffKappaSlider, GroupLayout.DEFAULT_SIZE, 297, Short.MAX_VALUE )
+														.addPreferredGap( ComponentPlacement.RELATED )
+														.addComponent( aniDiffKappaText, GroupLayout.PREFERRED_SIZE, 60, GroupLayout.PREFERRED_SIZE ) )
+												.addGroup( Alignment.TRAILING, gl_panelParams1.createSequentialGroup()
+														.addComponent( gaussGradSigmaSlider, GroupLayout.DEFAULT_SIZE, 297, Short.MAX_VALUE )
+														.addPreferredGap( ComponentPlacement.RELATED )
+														.addComponent( gaussGradSigmaText, GroupLayout.PREFERRED_SIZE, 60, GroupLayout.PREFERRED_SIZE ) )
+												.addComponent( lblGaussianFilter, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE )
+												.addComponent( lblFiltering, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE )
+												.addComponent( lblNewLabel, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE )
+												.addComponent( lblNumberOfIterations, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE )
+												.addComponent( lblAnisotropicDiffusion, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE )
+												.addComponent( lblGaussianGradient, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE )
+												.addComponent( lblDerivativesCalculation, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE ) )
+										.addContainerGap() )
+						);
+				gl_panelParams1.setVerticalGroup(
+						gl_panelParams1.createParallelGroup( Alignment.LEADING )
+								.addGroup( gl_panelParams1.createSequentialGroup()
+										.addGap( 11 )
+										.addComponent( lblNewLabel, GroupLayout.PREFERRED_SIZE, 29, GroupLayout.PREFERRED_SIZE )
+										.addGap( 24 )
+										.addComponent( lblFiltering, GroupLayout.PREFERRED_SIZE, 29, GroupLayout.PREFERRED_SIZE )
+										.addGap( 11 )
+										.addComponent( lblGaussianFilter )
+										.addGap( 11 )
+										.addGroup( gl_panelParams1.createParallelGroup( Alignment.LEADING )
+												.addComponent( gaussFiltSigmaText, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE )
+												.addComponent( gaussFiltSigmaSlider, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE ) )
+										.addGap( 29 )
+										.addComponent( lblAnisotropicDiffusion, GroupLayout.PREFERRED_SIZE, 29, GroupLayout.PREFERRED_SIZE )
+										.addGap( 11 )
+										.addComponent( lblNumberOfIterations )
+										.addGap( 11 )
+										.addGroup( gl_panelParams1.createParallelGroup( Alignment.LEADING )
+												.addComponent( aniDiffNIterText, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE )
+												.addComponent( aniDiffNIterSlider, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE ) )
+										.addGap( 11 )
+										.addComponent( lblGradientDiffusionThreshold )
+										.addGap( 11 )
+										.addGroup( gl_panelParams1.createParallelGroup( Alignment.LEADING )
+												.addComponent( aniDiffKappaText, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE )
+												.addComponent( aniDiffKappaSlider, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE ) )
+										.addGap( 23 )
+										.addComponent( lblDerivativesCalculation, GroupLayout.PREFERRED_SIZE, 29, GroupLayout.PREFERRED_SIZE )
+										.addGap( 11 )
+										.addComponent( lblGaussianGradient )
+										.addGap( 11 )
+										.addGroup( gl_panelParams1.createParallelGroup( Alignment.LEADING )
+												.addComponent( gaussGradSigmaSlider, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE )
+												.addComponent( gaussGradSigmaText, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE ) ) )
+						);
+				panelParams1.setLayout( gl_panelParams1 );
 				gaussGradSigmaSlider.addChangeListener( step3ChangeListener );
 				gaussGradSigmaText.addKeyListener( step3KeyListener );
 			}
