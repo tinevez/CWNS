@@ -241,10 +241,10 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 		settings.put( KAPPA_PARAMETER, 50.0 );
 		settings.put( SIGMA_G_PARAMETER, 1.0 );
 		settings.put( GAMMA_PARAMETER, 1.0 );
-		settings.put( ALPHA_PARAMETER, 2.7 );
-		settings.put( BETA_PARAMETER, 14.9 );
-		settings.put( EPSILON_PARAMETER, 16.9 );
-		settings.put( DELTA_PARAMETER, 0.5 );
+		settings.put( ALPHA_PARAMETER, 1.0 );
+		settings.put( BETA_PARAMETER, 1.0 );
+		settings.put( EPSILON_PARAMETER, 1.0 );
+		settings.put( DELTA_PARAMETER, 1.0 );
 		settings.put( THRESHOLD_FACTOR_PARAMETER, 1.6 );
 		return settings;
 	}

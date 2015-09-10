@@ -55,6 +55,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JFrame;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.img.Img;
@@ -81,7 +83,7 @@ public class CWNT_ implements PlugIn
 
 	public static final String PLUGIN_NAME = "Crown-Wearing Nuclei Segmenter";
 
-	public static final String PLUGIN_VERSION = "0.0.2";
+	public static final String PLUGIN_VERSION = "0.0.2-SNAPSHOT";
 
 	private int stepUpdateToPerform = Integer.MAX_VALUE;
 
@@ -813,9 +815,33 @@ public class CWNT_ implements PlugIn
 	public static void main( final String[] args )
 	{
 
+		try
+		{
+			// Set System L&F
+			UIManager.setLookAndFeel(
+					UIManager.getSystemLookAndFeelClassName() );
+		}
+		catch ( final UnsupportedLookAndFeelException e )
+		{
+			// handle exception
+		}
+		catch ( final ClassNotFoundException e )
+		{
+			// handle exception
+		}
+		catch ( final InstantiationException e )
+		{
+			// handle exception
+		}
+		catch ( final IllegalAccessException e )
+		{
+			// handle exception
+		}
+
 //		File testImage = new File("E:/Users/JeanYves/Documents/Projects/BRajaseka/Data/Meta-nov7mdb18ssplus-embryo2-1.tif");
 //		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/[XYZCT] registered pos4-timelapse-8bit_small crop.tif" );
-		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/Meta-nov7mdb18ssplus-embryo2-4.tif" );
+//		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/Meta-nov7mdb18ssplus-embryo2-4.tif" );
+		final File testImage = new File( "D:/Users/Jean-Yves/Development/Cwins/samples/18ssplus-embryo2-2hyperstack.tif" );
 
 		ImageJ.main( args );
 		final ImagePlus imp = IJ.openImage( testImage.getAbsolutePath() );
