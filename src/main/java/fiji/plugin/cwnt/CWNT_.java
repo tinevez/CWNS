@@ -58,6 +58,7 @@ import javax.swing.JFrame;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
+import net.imglib2.algorithm.MultiThreaded;
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImg;
@@ -70,7 +71,7 @@ import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.real.FloatType;
 
 @SuppressWarnings( "deprecation" )
-public class CWNT_ implements PlugIn
+public class CWNT_ implements PlugIn, MultiThreaded
 {
 
 	/*
@@ -96,6 +97,13 @@ public class CWNT_ implements PlugIn
 	private CompositeImage comp2;
 
 	private CompositeImage comp1;
+
+	private int numThreads;
+
+	public CWNT_()
+	{
+		setNumThreads();
+	}
 
 	@Override
 	public void run( final String arg )
@@ -371,6 +379,7 @@ public class CWNT_ implements PlugIn
 		logger.setStatus( "Tracking..." );
 
 		final TrackMate trackmate = new TrackMate( model, settings );
+		trackmate.setNumThreads( getNumThreads() );
 		trackmate.execTracking();
 
 		final long end = System.currentTimeMillis();
@@ -401,8 +410,8 @@ public class CWNT_ implements PlugIn
 		 * frame. But if we have 10 threads and 2 frames, we process the 2
 		 * frames at once, and allocate 5 threads per frame if we can.
 		 */
-		final int numThreads = Runtime.getRuntime().availableProcessors();
 		final int numFrames = settings.imp.getNFrames();
+		final int numThreads = getNumThreads();
 		final int nSimultaneousFrames = Math.min( numThreads, numFrames );
 		final int threadsPerFrame = Math.max( 1, numThreads / nSimultaneousFrames );
 
@@ -611,6 +620,7 @@ public class CWNT_ implements PlugIn
 		// Prepare algo
 		algo = new NucleiMasker( img );
 		algo.setParameters( gui.getParameters() );
+		algo.setNumThreads( getNumThreads() );
 		final boolean check = algo.checkInput() && algo.process();
 		if ( !check )
 		{
@@ -848,6 +858,7 @@ public class CWNT_ implements PlugIn
 		imp.show();
 
 		final CWNT_ plugin = new CWNT_();
+		plugin.setNumThreads( 4 );
 		plugin.run( "" );
 	}
 
@@ -958,5 +969,23 @@ public class CWNT_ implements PlugIn
 
 		target.setBounds( x + s.x, y + s.y, target.getWidth(), target.getHeight() );
 
+	}
+
+	@Override
+	public int getNumThreads()
+	{
+		return numThreads;
+	}
+
+	@Override
+	public void setNumThreads()
+	{
+		this.numThreads = Runtime.getRuntime().availableProcessors();
+	}
+
+	@Override
+	public void setNumThreads( final int numThreads )
+	{
+		this.numThreads = numThreads;
 	}
 }
