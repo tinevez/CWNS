@@ -1,7 +1,6 @@
 package fiji.plugin.cwnt.segmentation;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -11,22 +10,23 @@ import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
 import net.imglib2.algorithm.OutputAlgorithm;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
-import net.imglib2.labeling.Labeling;
-import net.imglib2.labeling.LabelingType;
 import net.imglib2.multithreading.Chunk;
 import net.imglib2.multithreading.SimpleMultiThreading;
+import net.imglib2.roi.labeling.ImgLabeling;
+import net.imglib2.roi.labeling.LabelingType;
 import net.imglib2.type.numeric.ARGBType;
+import net.imglib2.type.numeric.integer.UnsignedIntType;
 import net.imglib2.util.Util;
 
 @SuppressWarnings( "deprecation" )
 public class LabelToRGB extends MultiThreadedBenchmarkAlgorithm implements OutputAlgorithm< Img< ARGBType >>
 {
 
-	private final Labeling< Integer > labels;
+	private final ImgLabeling< Integer, UnsignedIntType > labels;
 
 	private Img< ARGBType > rgb;
 
-	public LabelToRGB( final Labeling< Integer > labels )
+	public LabelToRGB( final ImgLabeling< Integer, UnsignedIntType > labels )
 	{
 		super();
 		this.labels = labels;
@@ -70,11 +70,10 @@ public class LabelToRGB extends MultiThreadedBenchmarkAlgorithm implements Outpu
 					{
 						cursor.fwd();
 						target.setPosition( cursor );
-
-						final List< Integer > labeling = cursor.get().getLabeling();
-						if ( labeling.size() > 0 )
+						final LabelingType< Integer > labeling = cursor.get();
+						if ( !labeling.isEmpty() )
 						{
-							final int label = labeling.get( 0 );
+							final int label = labeling.iterator().next();
 							final int colorIndex = label % nColors;
 							final int[] arr = GLASBEY_LUT.get( colorIndex );
 							final int color = ARGBType.rgba( arr[ 0 ], arr[ 1 ], arr[ 2 ], 0 );
@@ -102,12 +101,12 @@ public class LabelToRGB extends MultiThreadedBenchmarkAlgorithm implements Outpu
 	 * The 32 first (non-white) colors of the Glabey LUT, made to maximise the
 	 * differences in perceived colors for labeled image.
 	 * <p>
-	 * 
+	 *
 	 * <pre>
 	 * <b>C.A. Glasbey, G.W.A.M. van der Heijden, V. Toh and A.J. Gray</b> <i>
 	 * Colour displays for categorical images</i>  - Color Research and Application, 32, 304-309
 	 * </pre>
-	 * 
+	 *
 	 * {@link http://www.bioss.ac.uk/staff/chris/colorpaper.pdf}
 	 */
 	public static Map< Integer, int[] > GLASBEY_LUT = new HashMap< Integer, int[] >( 32 );

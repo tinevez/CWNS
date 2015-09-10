@@ -5,18 +5,20 @@ import ij.IJ;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
-import net.imglib2.algorithm.labeling.AllConnectedComponents;
+import net.imglib2.algorithm.labeling.ConnectedComponents;
+import net.imglib2.algorithm.labeling.ConnectedComponents.StructuringElement;
 import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.labeling.Labeling;
-import net.imglib2.labeling.NativeImgLabeling;
+import net.imglib2.roi.labeling.ImgLabeling;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.logic.BitType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.integer.IntType;
+import net.imglib2.type.numeric.integer.UnsignedIntType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Util;
 import fiji.plugin.trackmate.Spot;
@@ -33,13 +35,13 @@ public class CrownWearingSegmenter< T extends RealType< T > & NativeType< T >> e
 
 	private Img< BitType > thresholded;
 
-	private NativeImgLabeling< Integer, IntType > labeling;
-
 	private List< Spot > spots;
 
 	private final double[] calibration;
 
 	private final Map< String, Object > settings;
+
+	private ImgLabeling< Integer, UnsignedIntType > labeling;
 
 	/*
 	 * CONSTRUCTOR
@@ -121,14 +123,31 @@ public class CrownWearingSegmenter< T extends RealType< T > & NativeType< T >> e
 		// Labeling
 		if ( DEBUG )
 			System.out.println( "Labelling..." );
-		final Iterator< Integer > labelGenerator = AllConnectedComponents.getIntegerNames( 0 );
-		final Img< IntType > img = Util.getArrayOrCellImgFactory( source, new IntType() ).create( source, new IntType() );
-		labeling = new NativeImgLabeling< Integer, IntType >( img );
 
-		// 6-connected structuring element
-		final long[][] structuringElement = new long[][] { { -1, 0, 0 }, { 1, 0, 0 }, { 0, -1, 0 }, { 0, 1, 0 }, { 0, 0, -1 }, { 0, 0, 1 } };
+		final StructuringElement se = ConnectedComponents.StructuringElement.FOUR_CONNECTED;
+		final Img< UnsignedIntType > img = Util.getArrayOrCellImgFactory( thresholded, new UnsignedIntType() ).create( thresholded, new UnsignedIntType() );
+		labeling = new ImgLabeling< Integer, UnsignedIntType >( img );
+		final Iterator< Integer > labelGenerator = new Iterator< Integer >()
+		{
+			private int val = 0;
 
-		AllConnectedComponents.labelAllConnectedComponents( labeling, thresholded, labelGenerator, structuringElement );
+			@Override
+			public Integer next()
+			{
+				val++;
+				return Integer.valueOf( val );
+			}
+
+			@Override
+			public boolean hasNext()
+			{
+				return true;
+			}
+		};
+		final ExecutorService service = Executors.newFixedThreadPool( numThreads );
+		ConnectedComponents.labelAllConnectedComponents( thresholded, labeling, labelGenerator, se, service );
+		service.shutdown();
+
 		if ( DEBUG )
 		{
 			System.out.println( "Labelling done." );
@@ -157,7 +176,7 @@ public class CrownWearingSegmenter< T extends RealType< T > & NativeType< T >> e
 	}
 
 
-	public Labeling< Integer > getLabeling()
+	public ImgLabeling< Integer, UnsignedIntType > getLabeling()
 	{
 		return labeling;
 	}

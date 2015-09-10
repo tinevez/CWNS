@@ -8,7 +8,7 @@ import java.util.Map;
 import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
 import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.labeling.Labeling;
+import net.imglib2.roi.labeling.ImgLabeling;
 import net.imglib2.type.numeric.ARGBType;
 
 public class CWNTFrameSegmenter extends MultiThreadedBenchmarkAlgorithm
@@ -64,7 +64,7 @@ public class CWNTFrameSegmenter extends MultiThreadedBenchmarkAlgorithm
 		final long end = System.currentTimeMillis();
 		processingTime = end - start;
 
-		final Labeling labels = cws.getLabeling();
+		final ImgLabeling labels = cws.getLabeling();
 		final LabelToRGB converter = new LabelToRGB( labels );
 		converter.setNumThreads( getNumThreads() );
 		converter.process();

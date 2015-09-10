@@ -5,15 +5,18 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.imglib2.Cursor;
 import net.imglib2.RandomAccess;
 import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
-import net.imglib2.labeling.Labeling;
-import net.imglib2.labeling.LabelingType;
 import net.imglib2.multithreading.SimpleMultiThreading;
-import net.imglib2.roi.IterableRegionOfInterest;
+import net.imglib2.roi.labeling.ImgLabeling;
+import net.imglib2.roi.labeling.LabelRegion;
+import net.imglib2.roi.labeling.LabelRegionCursor;
+import net.imglib2.roi.labeling.LabelRegions;
+import net.imglib2.roi.labeling.LabelingType;
+import net.imglib2.type.numeric.integer.UnsignedIntType;
 
 import org.apache.commons.math3.ml.clustering.CentroidCluster;
 import org.apache.commons.math3.ml.clustering.KMeansPlusPlusClusterer;
@@ -29,7 +32,7 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 	private static final String BASE_ERROR_MESSAGE = "[NucleiSplitter] ";
 
 	/** The labelled image contained the nuclei to split. */
-	private final Labeling< Integer > source;
+	private final ImgLabeling< Integer, UnsignedIntType > source;
 
 	/**
 	 * Nuclei volume top threshold. Nuclei with a volume larger than this
@@ -59,17 +62,21 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 
 	private final Iterator< Integer > labelGenerator;
 
+	private final LabelRegions< Integer > regions;
+
 	/*
 	 * CONSTRUCTOR
 	 */
 
-	public NucleiSplitter( final Labeling< Integer > source, final double[] calibration, final Iterator< Integer > labelGenerator )
+	public NucleiSplitter( final ImgLabeling< Integer, UnsignedIntType > labeling, final double[] calibration, final Iterator< Integer > labelGenerator )
 	{
 		super();
-		this.source = source;
+		this.source = labeling;
 		this.calibration = calibration;
 		this.labelGenerator = labelGenerator;
-		this.spots = Collections.synchronizedList( new ArrayList< Spot >( ( int ) 1.5 * source.getLabels().size() ) );
+		this.spots = Collections.synchronizedList( new ArrayList< Spot >( ( int ) 1.5 * labeling.getMapping().numSets() ) );
+		this.regions = new LabelRegions< Integer >( labeling );
+
 	}
 
 	/*
@@ -110,7 +117,7 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 					for ( int j = ai.getAndIncrement(); j < nucleiToSplit.size(); j = ai.getAndIncrement() )
 					{
 						label = nucleiToSplit.get( j );
-						volume = source.getArea( label );
+						volume = regions.getLabelRegion( label ).size();
 						targetNucleiNumber = ( int ) ( volume / volumeEstimate );
 						if ( targetNucleiNumber > 1 )
 						{
@@ -138,18 +145,17 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 	 */
 	private void split( final Integer label, final int n )
 	{
-
 		// Harvest pixel coordinates in a collection of calibrated clusterable
-		// points
-		final int volume = ( int ) source.getArea( label );
+		// points.
+		final int volume = ( int ) regions.getLabelRegion( label ).size();
 		final Collection< CalibratedEuclideanIntegerPoint > pixels = new ArrayList< CalibratedEuclideanIntegerPoint >( volume );
 
-		final IterableRegionOfInterest roi = source.getIterableRegionOfInterest( label );
-		final Cursor< LabelingType< Integer >> cursor = roi.getIterableIntervalOverROI( source ).cursor();
+		final LabelRegion< Integer > roi = regions.getLabelRegion( label );
+		final LabelRegionCursor cursor = roi.cursor();
 		while ( cursor.hasNext() )
 		{
 			cursor.fwd();
-			final int[] position = new int[ source.numDimensions() ];
+			final int[] position = new int[ regions.numDimensions() ];
 			cursor.localize( position );
 			pixels.add( new CalibratedEuclideanIntegerPoint( position, calibration ) );
 		}
@@ -159,21 +165,21 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 		final List< CentroidCluster< CalibratedEuclideanIntegerPoint >> clusters = clusterer.cluster( pixels );
 
 		// Create spots from clusters
-		final RandomAccess< LabelingType< Integer >> ra = source.randomAccess( source );
+		final RandomAccess< LabelingType< Integer >> ra = source.randomAccess( roi );
 		for ( final CentroidCluster< CalibratedEuclideanIntegerPoint > cluster : clusters )
 		{
 			// Relabel new clusters.
-			List< Integer > currentLabel = null;
-
+			Integer currentLabel = null;
 			final double[] centroid = new double[ 3 ];
 			for ( final CalibratedEuclideanIntegerPoint p : cluster.getPoints() )
 			{
 				ra.setPosition( p );
+				ra.get().clear();
 				if ( null == currentLabel )
 				{
-					currentLabel = ra.get().intern( labelGenerator.next() );
+					currentLabel = labelGenerator.next();
 				}
-				ra.get().setLabeling( currentLabel );
+				ra.get().add( currentLabel );
 
 				for ( int i = 0; i < centroid.length; i++ )
 				{
@@ -189,7 +195,7 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 			final double nucleusVol = cluster.getPoints().size() * voxelVolume;
 			final double radius = Math.max( 2 * calibration[ 0 ], Math.pow( 3 * nucleusVol / ( 4 * Math.PI ), 0.33333 ) );
 			final double quality = 1.0 / n;
-			// split spot get a quality of 1 over the number of spots in the
+			// Split spot get a quality of 1 over the number of spots in the
 			// initial cluster
 			final Spot spot = new Spot( centroid[ 0 ], centroid[ 1 ], centroid[ 2 ], radius, quality );
 			synchronized ( spots )
@@ -218,15 +224,14 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 	 */
 	private long getVolumeEstimate()
 	{
-
-		final ArrayList< Integer > labels = new ArrayList< Integer >( source.getLabels() );
+		final Set< Integer > labels = regions.getExistingLabels();
 
 		// Discard nuclei too big or too small;
 		thrashedLabels = new ArrayList< Integer >( labels.size() / 10 );
 		long volume;
 		for ( final Integer label : labels )
 		{
-			volume = source.getArea( label );
+			volume = regions.getLabelRegion( label ).size();
 			if ( volume >= volumeThresholdUp || volume <= volumeThresholdBottom )
 			{
 				thrashedLabels.add( label );
@@ -245,7 +250,7 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 		long v;
 		for ( final Integer label : labels )
 		{
-			v = source.getArea( label );
+			v = regions.getLabelRegion( label ).size();
 			sum += v;
 			sum_sqr += v * v;
 		}
@@ -257,7 +262,7 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 		final long splitThreshold = ( long ) ( mean + stdFactor * std );
 		for ( final Integer label : labels )
 		{
-			volume = source.getArea( label );
+			volume = regions.getLabelRegion( label ).size();
 			if ( volume >= splitThreshold )
 			{
 				nucleiToSplit.add( label );
@@ -276,7 +281,7 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 		final double voxelVolume = calibration[ 0 ] * calibration[ 1 ] * calibration[ 2 ];
 		for ( final Integer label : nonSuspiciousNuclei )
 		{
-			final double nucleusVol = source.getArea( label ) * voxelVolume;
+			final double nucleusVol = regions.getLabelRegion( label ).size() * voxelVolume;
 			final double radius = Math.max( 2 * calibration[ 0 ], Math.pow( 3 * nucleusVol / ( 4 * Math.PI ), 0.33333 ) );
 			final double[] coordinates = getCentroid( label );
 			final Spot spot = new Spot( coordinates[ 0 ], coordinates[ 1 ], coordinates[ 2 ], radius, 1.0 );
@@ -299,9 +304,7 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 		final double[] centroid = new double[ 3 ];
 		final int[] position = new int[ source.numDimensions() ];
 
-		final IterableRegionOfInterest roi = source.getIterableRegionOfInterest( label );
-		final Cursor< LabelingType< Integer >> cursor = roi.getIterableIntervalOverROI( source ).cursor();
-
+		final LabelRegionCursor cursor = regions.getLabelRegion( label ).cursor();
 		int npixels = 0;
 		while ( cursor.hasNext() )
 		{

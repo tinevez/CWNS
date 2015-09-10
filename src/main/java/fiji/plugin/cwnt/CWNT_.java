@@ -64,8 +64,8 @@ import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.basictypeaccess.array.FloatArray;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.labeling.Labeling;
 import net.imglib2.multithreading.SimpleMultiThreading;
+import net.imglib2.roi.labeling.ImgLabeling;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -514,7 +514,7 @@ public class CWNT_ implements PlugIn, MultiThreaded
 
 							if ( genLabelImg )
 							{
-								final Labeling< Integer > labels = segmenter.getLabeling();
+								final ImgLabeling labels = segmenter.getLabeling();
 								final LabelToRGB rgbConverter = new LabelToRGB( labels );
 								rgbConverter.setNumThreads( threadsPerFrame );
 
@@ -857,7 +857,7 @@ public class CWNT_ implements PlugIn, MultiThreaded
 		imp.show();
 
 		final CWNT_ plugin = new CWNT_();
-		plugin.setNumThreads( 4 );
+		plugin.setNumThreads( 1 );
 		plugin.run( "" );
 	}
 
