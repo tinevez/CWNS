@@ -79,7 +79,9 @@ public class CWNT_ implements PlugIn
 
 	private CwntGui gui;
 
-	public static final String PLUGIN_NAME = "Crown-Wearing Nuclei Segmenter ß3";
+	public static final String PLUGIN_NAME = "Crown-Wearing Nuclei Segmenter";
+
+	public static final String PLUGIN_VERSION = "0.0.2";
 
 	private int stepUpdateToPerform = Integer.MAX_VALUE;
 
@@ -127,7 +129,7 @@ public class CWNT_ implements PlugIn
 			}
 		} );
 
-		final JFrame frame = new JFrame( PLUGIN_NAME );
+		final JFrame frame = new JFrame( PLUGIN_NAME + " v" + PLUGIN_VERSION );
 		frame.setSize( 400, 600 );
 		frame.addWindowListener( new WindowListener()
 		{
@@ -505,7 +507,7 @@ public class CWNT_ implements PlugIn
 								final Labeling< Integer > labels = segmenter.getLabeling();
 								final LabelToRGB rgbConverter = new LabelToRGB( labels );
 								rgbConverter.setNumThreads( threadsPerFrame );
-								
+
 								if ( !rgbConverter.checkInput() || !rgbConverter.process() )
 								{
 									ok.set( false );
@@ -535,9 +537,9 @@ public class CWNT_ implements PlugIn
 				}
 			};
 		}
-		
+
 		SimpleMultiThreading.startAndJoin( threads );
-		
+
 		allSpots.setVisible( true );
 		if ( genLabelImg )
 		{

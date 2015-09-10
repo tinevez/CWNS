@@ -24,6 +24,7 @@ import net.imglib2.view.Views;
 
 import org.jdom2.Element;
 
+import fiji.plugin.cwnt.CWNT_;
 import fiji.plugin.trackmate.Model;
 import fiji.plugin.trackmate.Settings;
 import fiji.plugin.trackmate.detection.SpotDetectorFactory;
@@ -34,7 +35,7 @@ import fiji.plugin.trackmate.util.TMUtils;
 //@Plugin( type = SpotDetectorFactory.class )
 public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType< T >> implements SpotDetectorFactory< T >
 {
-	
+
 	/*
 	 * CONSTANTS
 	 */
@@ -47,7 +48,7 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 
 	/** An html information text. */
 	public static final String INFO_TEXT = "<html>" +
-			"<div align=\"justify\">" + 
+			"<div align=\"justify\">" +
 			"Crown-wearing nuclei segmenter. " +
 			"<p> " +
 			"This plugin allows the segmentation and tracking of bright blobs objects, " +
@@ -78,7 +79,9 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 			"Jean-Yves Tinevez <br>" +
 			"Andrew Oates lab - MPI-CBG, Dresden, 2011 " +
 			"</tt>" +
-			"</div>" +
+			"</div> "
+			+ "<p> "
+			+ "<code>" + CWNT_.PLUGIN_NAME + " v" + CWNT_.PLUGIN_VERSION + "</code>" +
 			"</html>" +
 			"";
 
@@ -266,11 +269,11 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 		}
 		return ok;
 	}
-	
+
 	public static double[] collectMaskingParameters( final Map< String, Object > settings )
 	{
 		final double[] maskingParams = new double[9];
-		maskingParams [ 0 ] = ( Double ) settings.get( SIGMA_F_PARAMETER ); 
+		maskingParams [ 0 ] = ( Double ) settings.get( SIGMA_F_PARAMETER );
 		maskingParams[ 1 ] = ( Double ) settings.get( N_AD_PARAMETER );
 		maskingParams[ 2 ] = ( Double ) settings.get( KAPPA_PARAMETER );
 		maskingParams[ 3 ] = ( Double ) settings.get( SIGMA_G_PARAMETER );
