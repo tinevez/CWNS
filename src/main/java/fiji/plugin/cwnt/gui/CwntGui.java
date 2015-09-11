@@ -1,8 +1,10 @@
 package fiji.plugin.cwnt.gui;
 
+import static fiji.plugin.trackmate.gui.TrackMateWizard.FONT;
 import ij.ImagePlus;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -24,15 +26,18 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import fiji.plugin.cwnt.segmentation.CrownWearingSegmenterFactory;
 import fiji.plugin.cwnt.segmentation.NucleiMasker;
+import fiji.plugin.trackmate.Logger;
 import fiji.plugin.trackmate.gui.ConfigurationPanel;
 
 public class CwntGui extends ConfigurationPanel
@@ -272,6 +277,12 @@ public class CwntGui extends ConfigurationPanel
 
 	private JCheckBox chckbxGenLabels;
 
+	private JProgressBar progressBar;
+
+	private JCheckBox chckbxShowColoredLabel;
+
+	private final GuiLogger logger;
+
 	/*
 	 * CONSTRUCTOR
 	 */
@@ -279,12 +290,18 @@ public class CwntGui extends ConfigurationPanel
 	public CwntGui( final ImagePlus imp )
 	{
 		initGUI();
+		this.logger = new GuiLogger();
 		labelTargetImage.setText( imp.getTitle() );
 	}
 
 	/*
 	 * PUBLIC METHODS
 	 */
+
+	public Logger getLogger()
+	{
+		return logger;
+	}
 
 	@Override
 	public void addActionListener( final ActionListener listener )
@@ -355,9 +372,14 @@ public class CwntGui extends ConfigurationPanel
 		return tabbedPane.getSelectedIndex();
 	}
 
-	public boolean getGenLabelFlag()
+	public boolean getShowLabelFlag()
 	{
 		return chckbxGenLabels.isSelected();
+	}
+
+	public boolean getShowColorLabelFlag()
+	{
+		return chckbxShowColoredLabel.isSelected();
 	}
 
 	/*
@@ -843,29 +865,43 @@ public class CwntGui extends ConfigurationPanel
 				}
 			} );
 
-			chckbxGenLabels = new JCheckBox( "Generate label image." );
+			chckbxGenLabels = new JCheckBox( "Show label image." );
 			chckbxGenLabels.setFont( SMALL_LABEL_FONT );
-			chckbxGenLabels.setSelected( true );
+			chckbxGenLabels.setSelected( false );
+
+			chckbxShowColoredLabel = new JCheckBox( "Show colored label image." );
+			chckbxShowColoredLabel.setFont( SMALL_LABEL_FONT );
+			chckbxShowColoredLabel.setSelected( true );
+
+			progressBar = new JProgressBar( 0, 100 );
+			progressBar.setStringPainted( true );
+			progressBar.setFont( FONT );
 
 			final GroupLayout gl_panelRun = new GroupLayout( panelRun );
 			gl_panelRun.setHorizontalGroup(
-					gl_panelRun.createParallelGroup( Alignment.LEADING )
+					gl_panelRun.createParallelGroup( Alignment.TRAILING )
 							.addGroup( gl_panelRun.createSequentialGroup()
+									.addGap( 10 )
 									.addGroup( gl_panelRun.createParallelGroup( Alignment.LEADING )
-											.addGroup( gl_panelRun.createSequentialGroup()
-													.addGap( 10 )
-													.addComponent( lblLaunchComputation, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE ) )
-											.addGroup( gl_panelRun.createSequentialGroup()
-													.addGap( 10 )
-													.addComponent( lblEstimatedTime_1, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE ) )
-											.addGroup( gl_panelRun.createSequentialGroup()
-													.addGap( 137 )
-													.addComponent( btnGo, GroupLayout.PREFERRED_SIZE, 100, GroupLayout.PREFERRED_SIZE ) ) )
+											.addComponent( lblLaunchComputation, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE )
+											.addComponent( lblEstimatedTime_1, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE ) )
 									.addContainerGap() )
 							.addGroup( gl_panelRun.createSequentialGroup()
 									.addContainerGap()
 									.addComponent( chckbxGenLabels, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE )
 									.addGap( 10 ) )
+							.addGroup( gl_panelRun.createSequentialGroup()
+									.addContainerGap()
+									.addComponent( chckbxShowColoredLabel, GroupLayout.DEFAULT_SIZE, 367, Short.MAX_VALUE )
+									.addContainerGap() )
+							.addGroup( Alignment.LEADING, gl_panelRun.createSequentialGroup()
+									.addContainerGap()
+									.addComponent( progressBar, GroupLayout.DEFAULT_SIZE, 367, Short.MAX_VALUE )
+									.addContainerGap() )
+							.addGroup( gl_panelRun.createSequentialGroup()
+									.addContainerGap( 273, Short.MAX_VALUE )
+									.addComponent( btnGo, GroupLayout.PREFERRED_SIZE, 100, GroupLayout.PREFERRED_SIZE )
+									.addContainerGap() )
 					);
 			gl_panelRun.setVerticalGroup(
 					gl_panelRun.createParallelGroup( Alignment.LEADING )
@@ -876,46 +912,18 @@ public class CwntGui extends ConfigurationPanel
 									.addComponent( lblEstimatedTime_1, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE )
 									.addGap( 68 )
 									.addComponent( chckbxGenLabels )
-									.addGap( 163 )
+									.addPreferredGap( ComponentPlacement.RELATED )
+									.addComponent( chckbxShowColoredLabel )
+									.addPreferredGap( ComponentPlacement.RELATED, 258, Short.MAX_VALUE )
 									.addComponent( btnGo, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE )
-									.addGap( 156 ) )
+									.addPreferredGap( ComponentPlacement.RELATED )
+									.addComponent( progressBar, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE )
+									.addContainerGap() )
 					);
 			panelRun.setLayout( gl_panelRun );
 
 		}
 	}
-
-//	public void setModelAndView( final Model model, final TrackMateModelView view )
-//	{
-//
-//		if ( tabbedPane.getTabCount() > 4 )
-//		{
-//			tabbedPane.removeTabAt( 4 );
-//		}
-//		final ConfigureViewsPanel displayerPanel = new ConfigureViewsPanel( model );
-//		displayerPanel.getTrackSchemeButton().setVisible( false );
-//		displayerPanel.addDisplaySettingsChangeListener( new DisplaySettingsListener()
-//		{
-//			@Override
-//			public void displaySettingsChanged( final DisplaySettingsEvent event )
-//			{
-//				view.setDisplaySettings( event.getKey(), event.getNewValue() );
-//			}
-//		} );
-//
-//		tabbedPane.addTab( "Display settings", null, displayerPanel, null );
-//
-//		if ( tabbedPane.getTabCount() > 5 )
-//		{
-//			tabbedPane.removeTabAt( 5 );
-//		}
-//		final Settings settings = new Settings();
-////		settings.setFrom( imp );
-//		final TrackMate trackmate = new TrackMate( model, settings );
-//		final ActionChooserPanel actionPanel = new ActionChooserPanel( new ActionProvider(), trackmate, null );
-//		tabbedPane.addTab( "Actions", null, actionPanel.getPanel(), null );
-//
-//	}
 
 	private void link( final DoubleJSlider slider, final JTextField text )
 	{
@@ -940,5 +948,48 @@ public class CwntGui extends ConfigurationPanel
 				slider.setValue( ( int ) value );
 			}
 		} );
+	}
+
+	private class GuiLogger extends Logger
+	{
+		private final Logger ijl = Logger.IJ_LOGGER;
+
+		@Override
+		public void log( final String message, final Color color )
+		{
+			ijl.log( message, color );
+		}
+
+		@Override
+		public void error( final String message )
+		{
+			ijl.error( message );
+		}
+
+		@Override
+		public void setProgress( final double val )
+		{
+			SwingUtilities.invokeLater( new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					progressBar.setValue( ( int ) ( 100 * val ) );
+				}
+			} );
+		}
+
+		@Override
+		public void setStatus( final String status )
+		{
+			SwingUtilities.invokeLater( new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					progressBar.setString( status );
+				}
+			} );
+		}
 	}
 }

@@ -58,6 +58,7 @@ import javax.swing.JFrame;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.MultiThreaded;
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.img.Img;
@@ -65,9 +66,9 @@ import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.basictypeaccess.array.FloatArray;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.multithreading.SimpleMultiThreading;
-import net.imglib2.roi.labeling.ImgLabeling;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.IntegerType;
+import net.imglib2.type.numeric.integer.UnsignedIntType;
 import net.imglib2.type.numeric.real.FloatType;
 
 @SuppressWarnings( "deprecation" )
@@ -90,15 +91,13 @@ public class CWNT_ implements PlugIn, MultiThreaded
 
 	private final DisplayUpdater updater = new DisplayUpdater();
 
-//	private Model model;
-
-	private Logger logger;
-
 	private CompositeImage comp2;
 
 	private CompositeImage comp1;
 
 	private int numThreads;
+
+	private Logger logger;
 
 	public CWNT_()
 	{
@@ -116,7 +115,7 @@ public class CWNT_ implements PlugIn, MultiThreaded
 
 		// Create Panel silently
 		gui = new CwntGui( imp );
-		logger = Logger.IJ_LOGGER;
+		logger = gui.getLogger();
 
 		// Add listeners
 		imp.getCanvas().addMouseListener( new MouseAdapter()
@@ -391,22 +390,41 @@ public class CWNT_ implements PlugIn, MultiThreaded
 		 * Label ImagePlus holder.
 		 */
 
-		final boolean genLabelImg = gui.getGenLabelFlag();
+		final boolean showLabelImg = gui.getShowLabelFlag();
+		final boolean showColorLabelImg = gui.getShowColorLabelFlag();
+
 		final ImagePlus labelImp;
-		if ( genLabelImg )
+		if ( showLabelImg )
 		{
 			final ImagePlus imp = settings.imp;
 			final int width = imp.getWidth();
 			final int height = imp.getHeight();
 			final int slices = imp.getStackSize();
 			final int options = NewImage.FILL_BLACK;
-			labelImp = NewImage.createRGBImage( "Labels for " + imp.getTitle(), width, height, slices, options );
+			labelImp = NewImage.createImage( "Labels for " + imp.getTitle(), width, height, slices, 16, options );
 			labelImp.setCalibration( imp.getCalibration() );
 			labelImp.setDimensions( imp.getNChannels(), imp.getNSlices(), imp.getNFrames() );
 		}
 		else
 		{
 			labelImp = null;
+		}
+
+		final ImagePlus rgbImp;
+		if ( showColorLabelImg )
+		{
+			final ImagePlus imp = settings.imp;
+			final int width = imp.getWidth();
+			final int height = imp.getHeight();
+			final int slices = imp.getStackSize();
+			final int options = NewImage.FILL_BLACK;
+			rgbImp = NewImage.createRGBImage( "Labels for " + imp.getTitle(), width, height, slices, options );
+			rgbImp.setCalibration( imp.getCalibration() );
+			rgbImp.setDimensions( imp.getNChannels(), imp.getNSlices(), imp.getNFrames() );
+		}
+		else
+		{
+			rgbImp = null;
 		}
 
 		// Prepare the thread array
@@ -477,27 +495,32 @@ public class CWNT_ implements PlugIn, MultiThreaded
 							 * Harvest label image.
 							 */
 
-							if ( genLabelImg )
+							if ( showLabelImg )
 							{
-								final ImgLabeling labels = segmenter.getLabeling();
-								final LabelToRGB rgbConverter = new LabelToRGB( labels );
-								rgbConverter.setNumThreads( threadsPerFrame );
-
-								if ( !rgbConverter.checkInput() || !rgbConverter.process() )
+								final RandomAccessibleInterval< UnsignedIntType > labels = segmenter.getLabeling().getIndexImg();
+								final ImagePlus rgbImp = ImageJFunctions.wrap( labels, "Labels frame " + frame );
+								final ImageStack stack = rgbImp.getImageStack();
+								for ( int i = 0; i < rgbImp.getStackSize(); i++ )
 								{
-									ok.set( false );
-									logger.error( "Problem with labels: " + rgbConverter.getErrorMessage() );
+									final ImageProcessor ip = stack.getProcessor( i + 1 ).duplicate();
+									final int n = labelImp.getStackIndex( 1, i + 1, frame + 1 );
+									labelImp.getStack().setProcessor( ip, n );
 								}
-								else
+							}
+
+							if ( showColorLabelImg )
+							{
+								final LabelToRGB rgbConverter = new LabelToRGB( segmenter.getLabeling() );
+								if (rgbConverter.checkInput() && rgbConverter.process())
 								{
 									final Img< ARGBType > rgb = rgbConverter.getResult();
-									final ImagePlus rgbImp = ImageJFunctions.wrapRGB( rgb, "RGB frame " + frame );
-									final ImageStack stack = rgbImp.getImageStack();
-									for ( int i = 0; i < rgbImp.getStackSize(); i++ )
+									final ImagePlus rgbi = ImageJFunctions.wrapRGB( rgb, "RGB frame " + frame );
+									final ImageStack stack = rgbi.getImageStack();
+									for ( int i = 0; i < rgbi.getStackSize(); i++ )
 									{
 										final ImageProcessor ip = stack.getProcessor( i + 1 ).duplicate();
-										final int n = labelImp.getStackIndex( 1, i + 1, frame + 1 );
-										labelImp.getStack().setProcessor( ip, n );
+										final int n = rgbImp.getStackIndex( 1, i + 1, frame + 1 );
+										rgbImp.getStack().setProcessor( ip, n );
 									}
 								}
 							}
@@ -516,10 +539,16 @@ public class CWNT_ implements PlugIn, MultiThreaded
 		SimpleMultiThreading.startAndJoin( threads );
 
 		allSpots.setVisible( true );
-		if ( genLabelImg )
+		if ( showLabelImg )
 		{
 			labelImp.setOpenAsHyperStack( true );
 			labelImp.show();
+			labelImp.resetDisplayRange();
+		}
+		if ( showColorLabelImg )
+		{
+			rgbImp.setOpenAsHyperStack( true );
+			rgbImp.show();
 		}
 
 		logger.setProgress( 0 );
