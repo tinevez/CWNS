@@ -6,11 +6,12 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import net.imglib2.RandomAccess;
 import net.imglib2.algorithm.MultiThreadedBenchmarkAlgorithm;
-import net.imglib2.multithreading.SimpleMultiThreading;
 import net.imglib2.roi.labeling.ImgLabeling;
 import net.imglib2.roi.labeling.LabelRegion;
 import net.imglib2.roi.labeling.LabelRegionCursor;
@@ -24,7 +25,6 @@ import org.apache.commons.math3.ml.clustering.KMeansPlusPlusClusterer;
 
 import fiji.plugin.trackmate.Spot;
 
-@SuppressWarnings( "deprecation" )
 public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 {
 
@@ -99,36 +99,44 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 	public boolean process()
 	{
 		final long start = System.currentTimeMillis();
-
 		final long volumeEstimate = getVolumeEstimate();
 
-		final Thread[] threads = new Thread[ numThreads ];
-		final AtomicInteger ai = new AtomicInteger();
-
-		for ( int i = 0; i < threads.length; i++ )
+		final Collection< LabelRegion< Integer > > toProcess = new ArrayList< LabelRegion< Integer > >( nucleiToSplit.size() );
+		for ( final Integer label : nucleiToSplit )
 		{
-			threads[ i ] = new Thread( BASE_ERROR_MESSAGE + "thread " + i )
-			{
-				@Override
-				public void run()
-				{
-					long volume;
-					int targetNucleiNumber;
-					Integer label;
-					for ( int j = ai.getAndIncrement(); j < nucleiToSplit.size(); j = ai.getAndIncrement() )
-					{
-						label = nucleiToSplit.get( j );
-						volume = regions.getLabelRegion( label ).size();
-						targetNucleiNumber = ( int ) ( volume / volumeEstimate );
-						if ( targetNucleiNumber > 1 )
-						{
-							split( label, targetNucleiNumber );
-						}
-					}
-				}
-			};
+			toProcess.add( regions.getLabelRegion( label ).copy() );
 		}
-		SimpleMultiThreading.startAndJoin( threads );
+
+		final ExecutorService service = Executors.newFixedThreadPool( getNumThreads() );
+		final Iterator< LabelRegion< Integer >> iterator = toProcess.iterator();
+		while(iterator.hasNext())
+		{
+			final LabelRegion< Integer > region = iterator.next();
+			final long volume = region.size();
+			final int targetNucleiNumber = ( int ) ( volume / volumeEstimate );
+			if ( targetNucleiNumber > 1 )
+			{
+				service.execute( new Runnable()
+				{
+					@Override
+					public void run()
+					{
+						split( region, targetNucleiNumber );
+					}
+				} );
+			}
+		}
+		service.shutdown();
+		try
+		{
+			service.awaitTermination( 1, TimeUnit.DAYS );
+		}
+		catch ( final InterruptedException e )
+		{
+			errorMessage = BASE_ERROR_MESSAGE + e.getMessage();
+			e.printStackTrace();
+			return false;
+		}
 
 		final long end = System.currentTimeMillis();
 		processingTime = end - start;
@@ -144,15 +152,14 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 	 * number of nuclei. Splitting is made using K-means++ clustering using
 	 * calibrated euclidean distance.
 	 */
-	private void split( final Integer label, final int n )
+	private void split( final LabelRegion< Integer > region, final int n )
 	{
 		// Harvest pixel coordinates in a collection of calibrated clusterable
 		// points.
-		final int volume = ( int ) regions.getLabelRegion( label ).size();
+		final int volume = ( int ) region.size();
 		final Collection< CalibratedEuclideanIntegerPoint > pixels = new ArrayList< CalibratedEuclideanIntegerPoint >( volume );
 
-		final LabelRegion< Integer > roi = regions.getLabelRegion( label );
-		final LabelRegionCursor cursor = roi.cursor();
+		final LabelRegionCursor cursor = region.cursor();
 		while ( cursor.hasNext() )
 		{
 			cursor.fwd();
@@ -166,7 +173,7 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 		final List< CentroidCluster< CalibratedEuclideanIntegerPoint >> clusters = clusterer.cluster( pixels );
 
 		// Create spots from clusters
-		final RandomAccess< LabelingType< Integer >> ra = source.randomAccess( roi );
+		final RandomAccess< LabelingType< Integer >> ra = source.randomAccess( region );
 		for ( final CentroidCluster< CalibratedEuclideanIntegerPoint > cluster : clusters )
 		{
 			// Relabel new clusters.

@@ -166,6 +166,7 @@ public class CrownWearingSegmenter< T extends RealType< T > & NativeType< T >> e
 
 		}
 		final NucleiSplitter splitter = new NucleiSplitter( labeling, calibration, labelGenerator );
+		splitter.setNumThreads( 1 );
 		if ( !( splitter.checkInput() && splitter.process() ) )
 		{
 			IJ.error( "Problem with splitter: " + splitter.getErrorMessage() );
