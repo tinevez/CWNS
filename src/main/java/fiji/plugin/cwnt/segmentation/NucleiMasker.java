@@ -48,13 +48,13 @@ public class NucleiMasker< T extends RealType< T > & NativeType< T >> extends Mu
 	public static final double[] DEFAULT_MASKING_PARAMETERS = new double[] {
 			0.5, // 0. σf
 			5, // 1. nAD
-			50, // 2. κAD
-			1, // 3. σg
-			1, // 4. γ
-			2.7, // 5. α
-			14.9, // 6. β
-			16.9, // 7. ε
-			0.5 // 8. δ
+			50., // 2. κAD
+			1., // 3. σg
+			1., // 4. γ
+			1., // 5. α
+			1., // 6. β
+			1., // 7. ε
+			1. // 8. δ
 	};
 
 	private static final String BASE_ERROR_MESSAGE = "[NucleiMasker] ";
