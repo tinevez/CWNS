@@ -12,9 +12,9 @@
 		<relativePath />
 	</parent>
 
-	<artifactId>Cwins</artifactId>
-	<version>0.0.2</version>
-	<name>plugins/Cwins_.jar</name>
+	<artifactId>CWNS_</artifactId>
+	<version>0.0.3-SNAPSHOT</version>
+	<name>plugins/CWNS_.jar</name>
 	<description></description>
 
 	<developers>
