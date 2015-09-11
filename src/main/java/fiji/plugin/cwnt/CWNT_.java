@@ -849,8 +849,8 @@ public class CWNT_ implements PlugIn, MultiThreaded
 
 //		File testImage = new File("E:/Users/JeanYves/Documents/Projects/BRajaseka/Data/Meta-nov7mdb18ssplus-embryo2-1.tif");
 //		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/[XYZCT] registered pos4-timelapse-8bit_small crop.tif" );
-//		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/Meta-nov7mdb18ssplus-embryo2-4.tif" );
-		final File testImage = new File( "D:/Users/Jean-Yves/Development/Cwins/samples/18ssplus-embryo2-2hyperstack-1.tif" );
+		final File testImage = new File( "/Users/tinevez/Projects/BRajasekaran/Data/Meta-nov7mdb18ssplus-embryo2-4.tif" );
+		//		final File testImage = new File( "D:/Users/Jean-Yves/Development/Cwins/samples/18ssplus-embryo2-2hyperstack-1.tif" );
 
 		ImageJ.main( args );
 		final ImagePlus imp = IJ.openImage( testImage.getAbsolutePath() );

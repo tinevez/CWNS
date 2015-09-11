@@ -17,6 +17,7 @@ import net.imglib2.roi.labeling.LabelRegionCursor;
 import net.imglib2.roi.labeling.LabelRegions;
 import net.imglib2.roi.labeling.LabelingType;
 import net.imglib2.type.numeric.integer.UnsignedIntType;
+import net.imglib2.util.Util;
 
 import org.apache.commons.math3.ml.clustering.CentroidCluster;
 import org.apache.commons.math3.ml.clustering.KMeansPlusPlusClusterer;
@@ -193,7 +194,7 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 
 			final double voxelVolume = calibration[ 0 ] * calibration[ 1 ] * calibration[ 2 ];
 			final double nucleusVol = cluster.getPoints().size() * voxelVolume;
-			final double radius = Math.max( 2 * calibration[ 0 ], Math.pow( 3 * nucleusVol / ( 4 * Math.PI ), 0.33333 ) );
+			final double radius = Math.max( Util.max( calibration ), Math.pow( 3 * nucleusVol / ( 4 * Math.PI ), 0.33333 ) );
 			final double quality = 1.0 / n;
 			// Split spot get a quality of 1 over the number of spots in the
 			// initial cluster
@@ -282,7 +283,7 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 		for ( final Integer label : nonSuspiciousNuclei )
 		{
 			final double nucleusVol = regions.getLabelRegion( label ).size() * voxelVolume;
-			final double radius = Math.max( 2 * calibration[ 0 ], Math.pow( 3 * nucleusVol / ( 4 * Math.PI ), 0.33333 ) );
+			final double radius = Math.max( Util.max( calibration ), Math.pow( 3 * nucleusVol / ( 4 * Math.PI ), 0.33333 ) );
 			final double[] coordinates = getCentroid( label );
 			final Spot spot = new Spot( coordinates[ 0 ], coordinates[ 1 ], coordinates[ 2 ], radius, 1.0 );
 			// non-suspicious spots get a quality of 1

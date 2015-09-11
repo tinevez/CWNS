@@ -143,6 +143,10 @@ public class CrownWearingSegmenter< T extends RealType< T > & NativeType< T >> e
 			{
 				return true;
 			}
+
+			@Override
+			public void remove()
+			{}
 		};
 		final ExecutorService service = Executors.newFixedThreadPool( numThreads );
 		ConnectedComponents.labelAllConnectedComponents( thresholded, labeling, labelGenerator, se, service );
