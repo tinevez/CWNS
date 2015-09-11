@@ -1,6 +1,7 @@
 package fiji.plugin.cwnt.segmentation;
 
 import static fiji.plugin.trackmate.detection.DetectorKeys.KEY_TARGET_CHANNEL;
+import static fiji.plugin.trackmate.io.IOUtils.readBooleanAttribute;
 import static fiji.plugin.trackmate.io.IOUtils.readDoubleAttribute;
 import static fiji.plugin.trackmate.io.IOUtils.readIntegerAttribute;
 import static fiji.plugin.trackmate.io.IOUtils.writeAttribute;
@@ -25,6 +26,7 @@ import net.imglib2.view.Views;
 import org.jdom2.Element;
 
 import fiji.plugin.cwnt.CWNT_;
+import fiji.plugin.trackmate.Logger.StringBuilderLogger;
 import fiji.plugin.trackmate.Model;
 import fiji.plugin.trackmate.Settings;
 import fiji.plugin.trackmate.detection.SpotDetectorFactory;
@@ -196,6 +198,7 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 		{
 			ok = ok && writeAttribute( settings, element, param, Integer.class, errorHolder );
 		}
+		ok = ok && writeAttribute( settings, element, KEY_SPLIT_NUCLEI, Boolean.class, errorHolder );
 
 		if ( !ok )
 		{
@@ -208,7 +211,9 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 	public boolean unmarshall( final Element element, final Map< String, Object > settings )
 	{
 		settings.clear();
+
 		final StringBuilder errorHolder = new StringBuilder();
+		final StringBuilderLogger logger = new StringBuilderLogger( errorHolder );
 		boolean ok = true;
 		for ( final String param : PARAMETERS_DOUBLES )
 		{
@@ -218,6 +223,8 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 		{
 			ok = ok & readIntegerAttribute( element, settings, param, errorHolder );
 		}
+		ok = ok & readBooleanAttribute( element, KEY_SPLIT_NUCLEI, logger );
+
 		if ( !ok )
 		{
 			errorMessage = errorHolder.toString();
@@ -246,6 +253,7 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 		settings.put( EPSILON_PARAMETER, 1.0 );
 		settings.put( DELTA_PARAMETER, 1.0 );
 		settings.put( THRESHOLD_FACTOR_PARAMETER, 1.6 );
+		settings.put( KEY_SPLIT_NUCLEI, Boolean.valueOf( true ) );
 		return settings;
 	}
 
@@ -262,6 +270,8 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 		{
 			ok = ok & checkParameter( settings, param, Integer.class, errorHolder );
 		}
+		ok = ok & checkParameter( settings, KEY_SPLIT_NUCLEI, Boolean.class, errorHolder );
+
 		ok = ok & checkMapKeys( settings, PARAMETER_NAMES, null, errorHolder );
 		if ( !ok )
 		{
@@ -322,6 +332,8 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 
 	public static final String THRESHOLD_FACTOR_PARAMETER = "thresholdFactor";
 
+	public static final String KEY_SPLIT_NUCLEI = "splitNuclei";
+
 	public static final List< String > PARAMETER_NAMES = Arrays.asList( new String[]
 	{
 			SIGMA_F_PARAMETER,
@@ -334,7 +346,8 @@ public class CrownWearingSegmenterFactory< T extends RealType< T > & NativeType<
 			DELTA_PARAMETER,
 			EPSILON_PARAMETER,
 			THRESHOLD_FACTOR_PARAMETER,
-			KEY_TARGET_CHANNEL
+			KEY_TARGET_CHANNEL,
+			KEY_SPLIT_NUCLEI
 	}
 			);
 

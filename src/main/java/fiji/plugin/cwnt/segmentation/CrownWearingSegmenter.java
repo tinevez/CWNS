@@ -1,5 +1,6 @@
 package fiji.plugin.cwnt.segmentation;
 
+import static fiji.plugin.cwnt.segmentation.CrownWearingSegmenterFactory.KEY_SPLIT_NUCLEI;
 import ij.IJ;
 
 import java.util.Iterator;
@@ -165,7 +166,9 @@ public class CrownWearingSegmenter< T extends RealType< T > & NativeType< T >> e
 			System.out.println( "Spatial calibration: " + Util.printCoordinates( calibration ) );
 
 		}
-		final NucleiSplitter splitter = new NucleiSplitter( labeling, calibration, labelGenerator );
+
+		final boolean splitNuclei = ( Boolean ) settings.get( KEY_SPLIT_NUCLEI );
+		final NucleiSpotCreator splitter = new NucleiSpotCreator( labeling, calibration, labelGenerator, splitNuclei );
 		splitter.setNumThreads( 1 );
 		if ( !( splitter.checkInput() && splitter.process() ) )
 		{

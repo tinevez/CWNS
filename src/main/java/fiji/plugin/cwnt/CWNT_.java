@@ -85,7 +85,7 @@ public class CWNT_ implements PlugIn, MultiThreaded
 
 	public static final String PLUGIN_NAME = "Crown-Wearing Nuclei Segmenter";
 
-	public static final String PLUGIN_VERSION = "0.0.2-SNAPSHOT";
+	public static final String PLUGIN_VERSION = "0.0.2";
 
 	private int stepUpdateToPerform = Integer.MAX_VALUE;
 

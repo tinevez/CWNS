@@ -1,5 +1,6 @@
 package fiji.plugin.cwnt.gui;
 
+import static fiji.plugin.cwnt.segmentation.CrownWearingSegmenterFactory.KEY_SPLIT_NUCLEI;
 import static fiji.plugin.trackmate.gui.TrackMateWizard.FONT;
 import ij.ImagePlus;
 
@@ -283,6 +284,8 @@ public class CwntGui extends ConfigurationPanel
 
 	private final GuiLogger logger;
 
+	private JCheckBox chckbxSplitLargeNuclei;
+
 	/*
 	 * CONSTRUCTOR
 	 */
@@ -338,6 +341,7 @@ public class CwntGui extends ConfigurationPanel
 	{
 		final Map< String, Object > settings = new CrownWearingSegmenterFactory().getDefaultSettings();
 		CrownWearingSegmenterFactory.putMaskingParameters( params, settings );
+		settings.put( KEY_SPLIT_NUCLEI, Boolean.valueOf( chckbxSplitLargeNuclei.isSelected() ) );
 		return settings;
 	}
 
@@ -365,6 +369,7 @@ public class CwntGui extends ConfigurationPanel
 	{
 		final double[] p = CrownWearingSegmenterFactory.collectMaskingParameters( settings );
 		System.arraycopy( p, 0, this.params, 0, p.length );
+		chckbxSplitLargeNuclei.setSelected( ( Boolean ) settings.get( KEY_SPLIT_NUCLEI ) );
 	}
 
 	public int getSelectedIndex()
@@ -877,9 +882,20 @@ public class CwntGui extends ConfigurationPanel
 			progressBar.setStringPainted( true );
 			progressBar.setFont( FONT );
 
+			chckbxSplitLargeNuclei = new JCheckBox( "Use Kmeans to split large nuclei." );
+			chckbxSplitLargeNuclei.setFont( SMALL_LABEL_FONT );
+			chckbxSplitLargeNuclei.setSelected( true );
+			chckbxSplitLargeNuclei.setToolTipText( "<html>"
+					+ "Sub-optimal crown mask and/or large extension in Z <br>"
+					+ "might generate artificially connected large nuclei."
+					+ "<p>"
+					+ "This extra step splits them using Kmeans++ clustering <br>"
+					+ "algorithm based on their volume compactness."
+					+ "</html>" );
+
 			final GroupLayout gl_panelRun = new GroupLayout( panelRun );
 			gl_panelRun.setHorizontalGroup(
-					gl_panelRun.createParallelGroup( Alignment.TRAILING )
+					gl_panelRun.createParallelGroup( Alignment.LEADING )
 							.addGroup( gl_panelRun.createSequentialGroup()
 									.addGap( 10 )
 									.addGroup( gl_panelRun.createParallelGroup( Alignment.LEADING )
@@ -888,13 +904,9 @@ public class CwntGui extends ConfigurationPanel
 									.addContainerGap() )
 							.addGroup( gl_panelRun.createSequentialGroup()
 									.addContainerGap()
-									.addComponent( chckbxGenLabels, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE )
-									.addGap( 10 ) )
-							.addGroup( gl_panelRun.createSequentialGroup()
-									.addContainerGap()
 									.addComponent( chckbxShowColoredLabel, GroupLayout.DEFAULT_SIZE, 367, Short.MAX_VALUE )
 									.addContainerGap() )
-							.addGroup( Alignment.LEADING, gl_panelRun.createSequentialGroup()
+							.addGroup( gl_panelRun.createSequentialGroup()
 									.addContainerGap()
 									.addComponent( progressBar, GroupLayout.DEFAULT_SIZE, 367, Short.MAX_VALUE )
 									.addContainerGap() )
@@ -902,6 +914,12 @@ public class CwntGui extends ConfigurationPanel
 									.addContainerGap( 273, Short.MAX_VALUE )
 									.addComponent( btnGo, GroupLayout.PREFERRED_SIZE, 100, GroupLayout.PREFERRED_SIZE )
 									.addContainerGap() )
+							.addGroup( Alignment.TRAILING, gl_panelRun.createSequentialGroup()
+									.addContainerGap()
+									.addGroup( gl_panelRun.createParallelGroup( Alignment.TRAILING )
+											.addComponent( chckbxSplitLargeNuclei, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE )
+											.addComponent( chckbxGenLabels, GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE ) )
+									.addGap( 10 ) )
 					);
 			gl_panelRun.setVerticalGroup(
 					gl_panelRun.createParallelGroup( Alignment.LEADING )
@@ -910,7 +928,9 @@ public class CwntGui extends ConfigurationPanel
 									.addComponent( lblLaunchComputation, GroupLayout.PREFERRED_SIZE, 31, GroupLayout.PREFERRED_SIZE )
 									.addGap( 29 )
 									.addComponent( lblEstimatedTime_1, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE )
-									.addGap( 68 )
+									.addGap( 39 )
+									.addComponent( chckbxSplitLargeNuclei )
+									.addPreferredGap( ComponentPlacement.RELATED )
 									.addComponent( chckbxGenLabels )
 									.addPreferredGap( ComponentPlacement.RELATED )
 									.addComponent( chckbxShowColoredLabel )

@@ -25,7 +25,7 @@ import org.apache.commons.math3.ml.clustering.KMeansPlusPlusClusterer;
 
 import fiji.plugin.trackmate.Spot;
 
-public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
+public class NucleiSpotCreator extends MultiThreadedBenchmarkAlgorithm
 {
 
 	private static final boolean DEBUG = false;
@@ -53,9 +53,9 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 	 */
 	private final double stdFactor = 0.5;
 
-	private ArrayList< Integer > nucleiToSplit;
+	private List< Integer > nucleiToSplit;
 
-	private ArrayList< Integer > thrashedLabels;
+	private List< Integer > thrashedLabels;
 
 	private final List< Spot > spots;
 
@@ -65,16 +65,19 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 
 	private final LabelRegions< Integer > regions;
 
+	private final boolean splitNuclei;
+
 	/*
 	 * CONSTRUCTOR
 	 */
 
-	public NucleiSplitter( final ImgLabeling< Integer, UnsignedIntType > labeling, final double[] calibration, final Iterator< Integer > labelGenerator )
+	public NucleiSpotCreator( final ImgLabeling< Integer, UnsignedIntType > labeling, final double[] calibration, final Iterator< Integer > labelGenerator, final boolean splitNuclei )
 	{
 		super();
 		this.source = labeling;
 		this.calibration = calibration;
 		this.labelGenerator = labelGenerator;
+		this.splitNuclei = splitNuclei;
 		this.spots = Collections.synchronizedList( new ArrayList< Spot >( ( int ) 1.5 * labeling.getMapping().numSets() ) );
 		this.regions = new LabelRegions< Integer >( labeling );
 
@@ -265,16 +268,23 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 		final long mean = sum / nNuclei;
 		final long std = ( long ) Math.sqrt( ( sum_sqr - sum * mean ) / nNuclei );
 
-		// Harvest suspicious nuclei
-		nucleiToSplit = new ArrayList< Integer >( nNuclei / 5 );
-		final long splitThreshold = ( long ) ( mean + stdFactor * std );
-		for ( final Integer label : labels )
+		if ( splitNuclei )
 		{
-			volume = regions.getLabelRegion( label ).size();
-			if ( volume >= splitThreshold )
+			// Harvest suspicious nuclei
+			nucleiToSplit = new ArrayList< Integer >( nNuclei / 5 );
+			final long splitThreshold = ( long ) ( mean + stdFactor * std );
+			for ( final Integer label : labels )
 			{
-				nucleiToSplit.add( label );
+				volume = regions.getLabelRegion( label ).size();
+				if ( volume >= splitThreshold )
+				{
+					nucleiToSplit.add( label );
+				}
 			}
+		}
+		else
+		{
+			nucleiToSplit = Collections.emptyList();
 		}
 
 		// Build non-suspicious nuclei list
@@ -298,12 +308,10 @@ public class NucleiSplitter extends MultiThreadedBenchmarkAlgorithm
 		}
 
 		final long volumeEstimate = mean;
-
 		if ( DEBUG )
 		{
 			System.out.println( BASE_ERROR_MESSAGE + "Single nucleus volume estimate: " + volumeEstimate + " voxels" );
 		}
-
 		return volumeEstimate;
 	}
 
