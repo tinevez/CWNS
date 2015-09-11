@@ -304,8 +304,6 @@ public class CWNT_ implements PlugIn, MultiThreaded
 		trackmate.computeEdgeFeatures( true );
 
 		launchDisplayer( model, settings );
-//		saveResults( model, settings );
-//		gui.setModelAndView( model, view );
 
 		logger.setStatus( "" );
 		logger.setProgress( 0f );
@@ -315,34 +313,6 @@ public class CWNT_ implements PlugIn, MultiThreaded
 		logger.log( "----------------------------\n" );
 
 	}
-
-//	private void saveResults( final Model model, final Settings settings )
-//	{
-//
-//		final ImagePlus imp = settings.imp;
-//		final String dir = imp.getOriginalFileInfo().directory;
-//		String name = imp.getOriginalFileInfo().fileName;
-//		name = name.substring( 0, name.lastIndexOf( '.' ) ) + ".xml";
-//		final File file = new File( dir, name );
-//
-//		logger.log( "Saving to file " + file.getAbsolutePath() + "...\n" );
-//		final TmXmlWriter writer = new TmXmlWriter( file );
-//		writer.appendSettings( settings );
-//		writer.appendModel( model );
-//		try
-//		{
-//			writer.writeToFile();
-//		}
-//		catch ( final FileNotFoundException e )
-//		{
-//			e.printStackTrace();
-//		}
-//		catch ( final IOException e )
-//		{
-//			e.printStackTrace();
-//		}
-//		logger.log( "Saving done.\n" );
-//	}
 
 	private void execTracking( final Model model, final Settings settings )
 	{
@@ -491,11 +461,6 @@ public class CWNT_ implements PlugIn, MultiThreaded
 							}
 							final List< Spot > spots = segmenter.getResult();
 
-//							TMUtils.translateSpots( spots,
-//									settings.xstart * calibration[ 0 ],
-//									settings.ystart * calibration[ 1 ],
-//									settings.zstart * calibration[ 2 ] );
-
 							// Tune time features
 							final double t = frame * settings.dt;
 							for ( final Spot spot : spots )
@@ -570,12 +535,6 @@ public class CWNT_ implements PlugIn, MultiThreaded
 
 	private void launchDisplayer( final Model model, final Settings settings )
 	{
-//		view = createLocalSliceDisplayer( model, imp );
-//		logger.log( "Rendering segmentation results...\n" );
-//		view.setDisplaySettings( TrackMateModelView.KEY_TRACK_DISPLAY_MODE, TrackMateModelView.TRACK_DISPLAY_MODE_LOCAL_QUICK );
-//		view.render();
-//		logger.log( "Rendering done.\n" );
-
 		final TrackMate trackmate = new TrackMate( model, settings );
 		final TrackMateGUIController controller = new TrackMateGUIController( trackmate );
 		controller.setGUIStateString( ConfigureViewsDescriptor.KEY );
